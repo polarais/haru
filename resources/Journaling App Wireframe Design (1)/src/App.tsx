@@ -32,17 +32,22 @@ interface DiaryEntry {
 }
 
 type ViewMode = 'calendar' | 'timeline';
-type AppMode = 'main' | 'write' | 'fullscreen-view' | 'ai-reflection';
+type AppMode = 'main' | 'write' | 'fullscreen-view' | 'ai-reflection' | 'edit';
 
 export default function App() {
   const [selectedDate, setSelectedDate] = useState<number | undefined>(undefined);
   const [currentView, setCurrentView] = useState<ViewMode>('calendar');
   const [appMode, setAppMode] = useState<AppMode>('main');
   const [writeDate, setWriteDate] = useState<number | null>(null);
+  const [editingEntry, setEditingEntry] = useState<DiaryEntry | null>(null); // Add this for edit mode
   const [viewingEntry, setViewingEntry] = useState<DiaryEntry | null>(null);
+  const [currentEntryIndex, setCurrentEntryIndex] = useState<number>(0); // Add this for multi-entry navigation
   const [isEntryPanelOpen, setIsEntryPanelOpen] = useState(false);
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
   const [reflectionEntry, setReflectionEntry] = useState<DiaryEntry | null>(null);
+  // Add calendar navigation state
+  const [currentMonth, setCurrentMonth] = useState(9); // September = 9
+  const [currentYear, setCurrentYear] = useState(2025);
   const [entries, setEntries] = useState<DiaryEntry[]>([
     {
       id: '1',
@@ -132,27 +137,94 @@ export default function App() {
       setWriteDate(date);
       setAppMode('write');
       setSelectedDate(date);
-    } else if (dayEntries.length === 1) {
-      // If there's only one entry, open it directly
-      setViewingEntry(dayEntries[0]);
-      setIsEntryPanelOpen(true);
-      setSelectedDate(date);
     } else {
-      // If there are multiple entries, we'll handle this in the calendar component
+      // For any number of entries (1 or more), show the first entry for that date
+      const firstEntry = dayEntries[0];
+      
+      // Get all entries sorted by date (ascending - oldest first) and by ID within same date
+      const sortedEntries = [...entries].sort((a, b) => {
+        if (a.date !== b.date) {
+          return a.date - b.date; // Sort by date ascending
+        }
+        return a.id.localeCompare(b.id); // Sort by ID within same date for consistency
+      });
+      const entryIndex = sortedEntries.findIndex(e => e.id === firstEntry.id);
+      
+      setViewingEntry(firstEntry);
+      setCurrentEntryIndex(entryIndex !== -1 ? entryIndex : 0); // Set the correct index in full list
+      setIsEntryPanelOpen(true);
       setSelectedDate(date);
     }
   };
 
   const handleEntryClick = (entry: DiaryEntry) => {
+    // Get all entries sorted by date (ascending - oldest first) and by ID within same date
+    const sortedEntries = [...entries].sort((a, b) => {
+      if (a.date !== b.date) {
+        return a.date - b.date; // Sort by date ascending
+      }
+      return a.id.localeCompare(b.id); // Sort by ID within same date for consistency
+    });
+    const entryIndex = sortedEntries.findIndex(e => e.id === entry.id);
+    
     setViewingEntry(entry);
+    setCurrentEntryIndex(entryIndex !== -1 ? entryIndex : 0); // Set the correct index in full list
     setIsEntryPanelOpen(true);
     setSelectedDate(entry.date);
+  };
+
+  // Add navigation functions for multi-entry cycling - Updated to work across all entries in chronological order
+  const handlePreviousEntry = () => {
+    if (!viewingEntry) return;
+    
+    // Get all entries sorted by date (ascending - oldest first) and by ID within same date
+    const sortedEntries = [...entries].sort((a, b) => {
+      if (a.date !== b.date) {
+        return a.date - b.date; // Sort by date ascending
+      }
+      return a.id.localeCompare(b.id); // Sort by ID within same date for consistency
+    });
+    const currentIndex = sortedEntries.findIndex(entry => entry.id === viewingEntry.id);
+    
+    if (currentIndex === -1) return;
+    
+    // Move to previous entry (or wrap to last if at beginning)
+    const newIndex = currentIndex > 0 ? currentIndex - 1 : sortedEntries.length - 1;
+    const newEntry = sortedEntries[newIndex];
+    
+    setViewingEntry(newEntry);
+    setSelectedDate(newEntry.date);
+    setCurrentEntryIndex(newIndex);
+  };
+
+  const handleNextEntry = () => {
+    if (!viewingEntry) return;
+    
+    // Get all entries sorted by date (ascending - oldest first) and by ID within same date
+    const sortedEntries = [...entries].sort((a, b) => {
+      if (a.date !== b.date) {
+        return a.date - b.date; // Sort by date ascending
+      }
+      return a.id.localeCompare(b.id); // Sort by ID within same date for consistency
+    });
+    const currentIndex = sortedEntries.findIndex(entry => entry.id === viewingEntry.id);
+    
+    if (currentIndex === -1) return;
+    
+    // Move to next entry (or wrap to first if at end)
+    const newIndex = currentIndex < sortedEntries.length - 1 ? currentIndex + 1 : 0;
+    const newEntry = sortedEntries[newIndex];
+    
+    setViewingEntry(newEntry);
+    setSelectedDate(newEntry.date);
+    setCurrentEntryIndex(newIndex);
   };
 
   const handleCloseEntryPanel = () => {
     setIsEntryPanelOpen(false);
     setViewingEntry(null);
     setSelectedDate(undefined);
+    setCurrentEntryIndex(0); // Reset index when closing
   };
 
   const handleCloseMobileSidebar = () => {
@@ -256,6 +328,107 @@ export default function App() {
     setWriteDate(null);
   };
 
+  const handleEditEntry = (entry: DiaryEntry) => {
+    setEditingEntry(entry);
+    setAppMode('edit');
+    setIsEntryPanelOpen(false); // Close the panel when editing
+  };
+
+  const handleUpdateEntry = (updatedData: { date: number; mood: string; title: string; content: string; photoUrl?: string; photoFile?: File }) => {
+    if (!editingEntry) return;
+
+    const updatedEntry: DiaryEntry = {
+      ...editingEntry,
+      mood: updatedData.mood,
+      title: updatedData.title,
+      content: updatedData.content,
+      preview: updatedData.content.slice(0, 100) + (updatedData.content.length > 100 ? '...' : ''),
+      hasPhoto: !!updatedData.photoUrl,
+      photoUrl: updatedData.photoUrl,
+      photoFile: updatedData.photoFile
+    };
+
+    setEntries(prev => prev.map(entry => 
+      entry.id === editingEntry.id ? updatedEntry : entry
+    ));
+    
+    // Return to viewing the updated entry
+    setViewingEntry(updatedEntry);
+    setIsEntryPanelOpen(true);
+    setAppMode('main');
+    setEditingEntry(null);
+  };
+
+  const handleDeleteEntry = (entryToDelete: DiaryEntry) => {
+    const confirmed = window.confirm(
+      `Are you sure you want to delete "${entryToDelete.title}"? This action cannot be undone.`
+    );
+    
+    if (!confirmed) return;
+
+    setEntries(prev => prev.filter(entry => entry.id !== entryToDelete.id));
+    
+    // If we're viewing this entry, close the panel
+    if (viewingEntry && viewingEntry.id === entryToDelete.id) {
+      setIsEntryPanelOpen(false);
+      setViewingEntry(null);
+      setSelectedDate(undefined);
+      setCurrentEntryIndex(0);
+    }
+  };
+
+  const handleCancelEdit = () => {
+    setAppMode('main');
+    setEditingEntry(null);
+    
+    // Return to viewing the entry if it was being viewed
+    if (viewingEntry) {
+      setIsEntryPanelOpen(true);
+    }
+  };
+
+  const handleGoToToday = () => {
+    const todayMonth = 9; // September
+    const todayYear = 2025;
+    
+    // Navigate to today's month if not already there
+    if (currentMonth !== todayMonth || currentYear !== todayYear) {
+      setCurrentMonth(todayMonth);
+      setCurrentYear(todayYear);
+    }
+    
+    // Just close any open panels and clear selection - don't auto-select today's date
+    setIsEntryPanelOpen(false);
+    setViewingEntry(null);
+    setSelectedDate(undefined);
+  }; 
+
+  const handlePreviousMonth = () => {
+    if (currentMonth === 1) {
+      setCurrentMonth(12);
+      setCurrentYear(currentYear - 1);
+    } else {
+      setCurrentMonth(currentMonth - 1);
+    }
+    // Close any open panels when navigating months
+    setIsEntryPanelOpen(false);
+    setViewingEntry(null);
+    setSelectedDate(undefined);
+  };
+
+  const handleNextMonth = () => {
+    if (currentMonth === 12) {
+      setCurrentMonth(1);
+      setCurrentYear(currentYear + 1);
+    } else {
+      setCurrentMonth(currentMonth + 1);
+    }
+    // Close any open panels when navigating months
+    setIsEntryPanelOpen(false);
+    setViewingEntry(null);
+    setSelectedDate(undefined);
+  };
+
   if (appMode === 'write') {
     return (
       <WriteEntryPage
@@ -272,6 +445,14 @@ export default function App() {
       <FullScreenEntryView
         entry={viewingEntry}
         onClose={handleCloseFullScreen}
+        // Add navigation props for full screen view too
+        currentEntryIndex={currentEntryIndex}
+        totalEntries={entries.length} // Use total entries count instead of daily entries
+        onPreviousEntry={handlePreviousEntry}
+        onNextEntry={handleNextEntry}
+        // Add edit/delete props
+        onEdit={handleEditEntry}
+        onDelete={handleDeleteEntry}
       />
     );
   }
@@ -282,6 +463,25 @@ export default function App() {
         entry={reflectionEntry}
         onClose={handleCloseReflection}
         onSave={handleSaveReflection}
+      />
+    );
+  }
+
+  if (appMode === 'edit' && editingEntry) {
+    return (
+      <WriteEntryPage
+        selectedDate={editingEntry.date}
+        onSave={handleUpdateEntry}
+        onCancel={handleCancelEdit}
+        onReflect={handleReflectOnEntry}
+        existingEntry={{
+          id: editingEntry.id,
+          mood: editingEntry.mood,
+          title: editingEntry.title,
+          content: editingEntry.content,
+          photoUrl: editingEntry.photoUrl,
+          photoFile: editingEntry.photoFile
+        }}
       />
     );
   }
@@ -327,7 +527,7 @@ export default function App() {
 
       {/* Main Content */}
       <main className={`flex-1 flex flex-col transition-all duration-300 ease-in-out ${
-        isEntryPanelOpen ? 'lg:-ml-64 lg:mr-96' : 'lg:ml-0'
+        isEntryPanelOpen ? 'lg:-ml-64 lg:mr-[28rem]' : 'lg:ml-0'
       }`}>
         {/* Header */}
         <header className="bg-white/80 backdrop-blur-sm border-b border-pink-100 sticky top-0 z-10">
@@ -345,14 +545,31 @@ export default function App() {
                   }
                 </p>
               </div>
-              <div className="text-sm text-gray-500">
-                Today is Thursday, September 4, 2025
-              </div>
+              {/* Today Button - Only show in calendar view */}
+              {currentView === 'calendar' && (
+                <div className="flex flex-col items-end">
+                  <button 
+                    onClick={handleGoToToday}
+                    className="px-4 py-2 rounded-lg bg-pink-100 hover:bg-pink-200 transition-colors"
+                  >
+                    <span className="text-pink-700">Today</span>
+                  </button>
+                  <p className="text-xs text-gray-500 mt-1">
+                    Today is Thursday, September 4, 2025
+                  </p>
+                </div>
+              )}
+              {/* Show original date text for timeline view */}
+              {currentView === 'timeline' && (
+                <div className="text-sm text-gray-500">
+                  Today is Thursday, September 4, 2025
+                </div>
+              )}
             </div>
 
             {/* Mobile Header */}
             <div className="lg:hidden">
-              {/* Top Row - App Title and Menu */}
+              {/* Top Row - App Title, Today Button (if calendar), and Menu */}
               <div className="flex items-center justify-between mb-4">
                 <div className="flex items-center gap-3">
                   <div className="w-8 h-8 bg-gradient-to-r from-pink-400 to-rose-400 rounded-lg flex items-center justify-center">
@@ -360,12 +577,24 @@ export default function App() {
                   </div>
                   <h1 className="text-gray-800">haru</h1>
                 </div>
-                <button
-                  onClick={() => setIsMobileSidebarOpen(true)}
-                  className="w-8 h-8 rounded-lg bg-gray-100 hover:bg-gray-200 flex items-center justify-center transition-colors"
-                >
-                  <Menu size={16} className="text-gray-600" />
-                </button>
+                
+                <div className="flex items-center gap-2">
+                  {/* Today Button for mobile calendar view */}
+                  {currentView === 'calendar' && (
+                    <button 
+                      onClick={handleGoToToday}
+                      className="px-3 py-1.5 rounded-lg bg-pink-100 hover:bg-pink-200 transition-colors"
+                    >
+                      <span className="text-pink-700 text-sm">Today</span>
+                    </button>
+                  )}
+                  <button
+                    onClick={() => setIsMobileSidebarOpen(true)}
+                    className="w-8 h-8 rounded-lg bg-gray-100 hover:bg-gray-200 flex items-center justify-center transition-colors"
+                  >
+                    <Menu size={16} className="text-gray-600" />
+                  </button>
+                </div>
               </div>
 
               {/* Mobile Tabs */}
@@ -419,6 +648,10 @@ export default function App() {
                   }}
                   selectedDate={selectedDate}
                   entries={entries}
+                  currentMonth={currentMonth}
+                  currentYear={currentYear}
+                  onPreviousMonth={handlePreviousMonth}
+                  onNextMonth={handleNextMonth}
                 />
               </div>
             </div>
@@ -444,6 +677,14 @@ export default function App() {
           isOpen={isEntryPanelOpen}
           onClose={handleCloseEntryPanel}
           onExpand={handleExpandToFullScreen}
+          // Add navigation props
+          currentEntryIndex={currentEntryIndex}
+          totalEntries={entries.length} // Use total entries count instead of daily entries
+          onPreviousEntry={handlePreviousEntry}
+          onNextEntry={handleNextEntry}
+          // Add edit/delete props
+          onEdit={handleEditEntry}
+          onDelete={handleDeleteEntry}
         />
       </div>
 
@@ -453,10 +694,18 @@ export default function App() {
           <FullScreenEntryView
             entry={viewingEntry}
             onClose={handleCloseEntryPanel}
+            // Add navigation props for full screen view too
+            currentEntryIndex={currentEntryIndex}
+            totalEntries={entries.length} // Use total entries count instead of daily entries
+            onPreviousEntry={handlePreviousEntry}
+            onNextEntry={handleNextEntry}
+            // Add edit/delete props
+            onEdit={handleEditEntry}
+            onDelete={handleDeleteEntry}
           />
         </div>
       )}
-
+      
       {/* Floating Add Button */}
       <FloatingAddButton onClick={handleAddEntry} />
       

@@ -81,6 +81,7 @@
   :root, :host {
     --font-sans: ui-sans-serif, system-ui, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
     --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+    --color-red-50: oklch(.971 .013 17.38);
     --color-red-500: oklch(.637 .237 25.331);
     --color-red-600: oklch(.577 .245 27.325);
     --color-orange-50: oklch(.98 .016 73.684);
@@ -821,6 +822,10 @@
     margin-left: calc(var(--spacing) * 1);
   }
 
+  .ml-2 {
+    margin-left: calc(var(--spacing) * 2);
+  }
+
   .ml-auto {
     margin-left: auto;
   }
@@ -1165,8 +1170,8 @@
     width: calc(var(--spacing) * 72);
   }
 
-  .w-96 {
-    width: calc(var(--spacing) * 96);
+  .w-\[28rem\] {
+    width: 28rem;
   }
 
   .w-\[100px\] {
@@ -1911,6 +1916,10 @@
     }
   }
 
+  .bg-pink-50 {
+    background-color: var(--color-pink-50);
+  }
+
   .bg-pink-100 {
     background-color: var(--color-pink-100);
   }
@@ -2475,6 +2484,10 @@
 
   .text-purple-800 {
     color: var(--color-purple-800);
+  }
+
+  .text-red-600 {
+    color: var(--color-red-600);
   }
 
   .text-secondary-foreground {
@@ -3192,6 +3205,12 @@
   }
 
   @media (hover: hover) {
+    .hover\:bg-gray-100:hover {
+      background-color: var(--color-gray-100);
+    }
+  }
+
+  @media (hover: hover) {
     .hover\:bg-gray-200:hover {
       background-color: var(--color-gray-200);
     }
@@ -3224,6 +3243,18 @@
   @media (hover: hover) {
     .hover\:bg-pink-50:hover {
       background-color: var(--color-pink-50);
+    }
+  }
+
+  @media (hover: hover) {
+    .hover\:bg-pink-100:hover {
+      background-color: var(--color-pink-100);
+    }
+  }
+
+  @media (hover: hover) {
+    .hover\:bg-pink-200:hover {
+      background-color: var(--color-pink-200);
     }
   }
 
@@ -3448,12 +3479,20 @@
     background-color: var(--primary);
   }
 
+  .focus\:bg-red-50:focus {
+    background-color: var(--color-red-50);
+  }
+
   .focus\:text-accent-foreground:focus {
     color: var(--accent-foreground);
   }
 
   .focus\:text-primary-foreground:focus {
     color: var(--primary-foreground);
+  }
+
+  .focus\:text-red-600:focus {
+    color: var(--color-red-600);
   }
 
   .focus\:ring-2:focus {
@@ -3578,10 +3617,6 @@
     --tw-scale-y: 95%;
     --tw-scale-z: 95%;
     scale: var(--tw-scale-x) var(--tw-scale-y);
-  }
-
-  .active\:bg-pink-100:active {
-    background-color: var(--color-pink-100);
   }
 
   .active\:bg-sidebar-accent:active {
@@ -4535,8 +4570,8 @@
   }
 
   @media (width >= 64rem) {
-    .lg\:mr-96 {
-      margin-right: calc(var(--spacing) * 96);
+    .lg\:mr-\[28rem\] {
+      margin-right: 28rem;
     }
   }
 
@@ -4723,12 +4758,6 @@
   @media (width >= 64rem) {
     .lg\:w-40 {
       width: calc(var(--spacing) * 40);
-    }
-  }
-
-  @media (width >= 64rem) {
-    .lg\:w-72 {
-      width: calc(var(--spacing) * 72);
     }
   }
 

@@ -6,6 +6,14 @@ interface WriteEntryPageProps {
   onSave: (entry: { date: number; mood: string; title: string; content: string; photoUrl?: string; photoFile?: File }) => void;
   onCancel: () => void;
   onReflect?: (entry: { id: string; date: number; mood: string; title: string; content: string; preview: string; hasPhoto?: boolean; photoUrl?: string; photoFile?: File }) => void;
+  existingEntry?: { // Add this for edit mode
+    id: string;
+    mood: string;
+    title: string;
+    content: string;
+    photoUrl?: string;
+    photoFile?: File;
+  };
 }
 
 type WriteMode = 'journal' | 'chat';
@@ -30,7 +38,7 @@ const aiResponses = [
   "Your reflection shows a lot of self-awareness. What patterns do you notice in your experiences?"
 ];
 
-export function WriteEntryPage({ selectedDate, onSave, onCancel, onReflect }: WriteEntryPageProps) {
+export function WriteEntryPage({ selectedDate, onSave, onCancel, onReflect, existingEntry }: WriteEntryPageProps) {
   const [writeMode, setWriteMode] = useState<WriteMode>('journal');
   const [selectedMood, setSelectedMood] = useState<string>('');
   const [title, setTitle] = useState<string>('');
@@ -266,6 +274,17 @@ export function WriteEntryPage({ selectedDate, onSave, onCancel, onReflect }: Wr
     }
   };
 
+  // Initialize state with existing entry if provided
+  useEffect(() => {
+    if (existingEntry) {
+      setSelectedMood(existingEntry.mood);
+      setTitle(existingEntry.title);
+      setContent(existingEntry.content);
+      setSelectedPhoto(existingEntry.photoUrl || null);
+      setPhotoFile(existingEntry.photoFile || null);
+    }
+  }, [existingEntry]);
+
   return (
     <div className="h-screen bg-gradient-to-br from-gray-50 to-pink-50 flex flex-col overflow-hidden">
       {/* Header */}
@@ -281,7 +300,7 @@ export function WriteEntryPage({ selectedDate, onSave, onCancel, onReflect }: Wr
                 <ArrowLeft size={20} className="text-gray-600" />
               </button>
               <div>
-                <h1 className="text-gray-800">New Entry</h1>
+                <h1 className="text-gray-800">{existingEntry ? 'Edit Entry' : 'New Entry'}</h1>
                 <p className="text-sm text-gray-500 hidden sm:block">{formatDate(selectedDate || 4)}</p>
               </div>
             </div>

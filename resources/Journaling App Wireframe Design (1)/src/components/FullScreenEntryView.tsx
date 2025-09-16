@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { ArrowLeft, Calendar, Clock, Camera, FileText, Sparkles } from 'lucide-react';
+import { ArrowLeft, Calendar, Clock, Camera, FileText, Sparkles, ChevronLeft, ChevronRight, Edit, Trash2, MoreHorizontal } from 'lucide-react';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from './ui/dropdown-menu';
 
 interface DiaryEntry {
   id: string;
@@ -26,9 +27,17 @@ interface DiaryEntry {
 interface FullScreenEntryViewProps {
   entry: DiaryEntry;
   onClose: () => void;
+  // Add navigation props (optional since not all full screen views have navigation)
+  currentEntryIndex?: number;
+  totalEntries?: number;
+  onPreviousEntry?: () => void;
+  onNextEntry?: () => void;
+  // Add edit/delete props
+  onEdit?: (entry: DiaryEntry) => void;
+  onDelete?: (entry: DiaryEntry) => void;
 }
 
-export function FullScreenEntryView({ entry, onClose }: FullScreenEntryViewProps) {
+export function FullScreenEntryView({ entry, onClose, currentEntryIndex, totalEntries, onPreviousEntry, onNextEntry, onEdit, onDelete }: FullScreenEntryViewProps) {
   const [activeTab, setActiveTab] = useState<'journal' | 'ai'>('journal');
   
   const formatDate = (date: number) => {
@@ -48,7 +57,7 @@ export function FullScreenEntryView({ entry, onClose }: FullScreenEntryViewProps
       <header className="bg-white/90 backdrop-blur-sm border-b border-gray-200 sticky top-0 z-20">
         <div className="max-w-6xl mx-auto px-4 lg:px-8 py-4">
           <div className="flex lg:grid lg:grid-cols-3 items-center gap-4">
-            {/* Left Section - Back Button & Title */}
+            {/* Left Section - Back Button, Mood & Title */}
             <div className="flex items-center gap-3 lg:gap-4 min-w-0 flex-1 lg:flex-none">
               <button
                 onClick={onClose}
@@ -56,33 +65,88 @@ export function FullScreenEntryView({ entry, onClose }: FullScreenEntryViewProps
               >
                 <ArrowLeft size={20} className="text-gray-600" />
               </button>
-              <div className="min-w-0 flex-1">
-                <h1 className="text-gray-800 truncate text-base lg:text-lg">{entry.title}</h1>
-                <div className="flex items-center gap-2 lg:gap-3 text-xs lg:text-sm text-gray-500">
-                  <div className="flex items-center gap-1">
-                    <Calendar size={12} className="lg:w-[14px] lg:h-[14px]" />
-                    <span className="hidden sm:inline">{formatDate(entry.date)} • {formatDay(entry.date)}</span>
-                    <span className="sm:hidden">{formatDate(entry.date)}</span>
+              <div className="flex items-center gap-3 min-w-0 flex-1 lg:flex-none">
+                <span className="text-2xl lg:text-3xl flex-shrink-0">{entry.mood}</span>
+                <div className="min-w-0 flex-1 lg:flex-none">
+                  <h1 className="text-gray-800 truncate text-base lg:text-lg">{entry.title}</h1>
+                  <div className="flex items-center gap-2 lg:gap-3 text-xs lg:text-sm text-gray-500">
+                    <div className="flex items-center gap-1">
+                      <Calendar size={12} className="lg:w-[14px] lg:h-[14px]" />
+                      <span className="hidden sm:inline">{formatDate(entry.date)} • {formatDay(entry.date)}</span>
+                      <span className="sm:hidden">{formatDate(entry.date)}</span>
+                    </div>
+                    {entry.aiReflection && (
+                      <>
+                        <span className="hidden sm:inline">•</span>
+                        <span className="text-purple-600 hidden sm:inline">AI Reflection included</span>
+                        <span className="text-purple-600 sm:hidden">AI</span>
+                      </>
+                    )}
                   </div>
-                  {entry.aiReflection && (
-                    <>
-                      <span className="hidden sm:inline">•</span>
-                      <span className="text-purple-600 hidden sm:inline">AI Reflection included</span>
-                      <span className="text-purple-600 sm:hidden">AI</span>
-                    </>
-                  )}
                 </div>
               </div>
+              {/* Menu dropdown - Only show if handlers are provided */}
+              {(onEdit || onDelete) && (
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <button className="w-8 h-8 rounded-lg hover:bg-gray-100 flex items-center justify-center transition-colors flex-shrink-0 lg:hidden">
+                      <MoreHorizontal size={16} className="text-gray-500" />
+                    </button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="w-32">
+                    {onEdit && (
+                      <DropdownMenuItem onClick={() => onEdit(entry)} className="flex items-center gap-2">
+                        <Edit size={14} />
+                        Edit
+                      </DropdownMenuItem>
+                    )}
+                    {onDelete && (
+                      <DropdownMenuItem 
+                        onClick={() => onDelete(entry)} 
+                        className="flex items-center gap-2 text-red-600 focus:text-red-600 focus:bg-red-50"
+                      >
+                        <Trash2 size={14} />
+                        Delete
+                      </DropdownMenuItem>
+                    )}
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              )}
             </div>
             
-            {/* Center Section - Empty for consistency */}
-            <div className="hidden lg:block"></div>
+            {/* Center Section - Empty now */}
+            <div className="hidden lg:flex justify-center">
+            </div>
             
-            {/* Right Section - Mood */}
-            <div className="flex justify-end lg:justify-end">
-              <div className="text-2xl lg:text-3xl">
-                {entry.mood}
-              </div>
+            {/* Right Section - Menu only */}
+            <div className="flex justify-end lg:justify-end items-center gap-2">
+              {/* Menu dropdown for desktop - Only show if handlers are provided */}
+              {(onEdit || onDelete) && (
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <button className="w-8 h-8 rounded-lg hover:bg-gray-100 flex items-center justify-center transition-colors flex-shrink-0 hidden lg:flex">
+                      <MoreHorizontal size={16} className="text-gray-500" />
+                    </button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="w-32">
+                    {onEdit && (
+                      <DropdownMenuItem onClick={() => onEdit(entry)} className="flex items-center gap-2">
+                        <Edit size={14} />
+                        Edit
+                      </DropdownMenuItem>
+                    )}
+                    {onDelete && (
+                      <DropdownMenuItem 
+                        onClick={() => onDelete(entry)} 
+                        className="flex items-center gap-2 text-red-600 focus:text-red-600 focus:bg-red-50"
+                      >
+                        <Trash2 size={14} />
+                        Delete
+                      </DropdownMenuItem>
+                    )}
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              )}
             </div>
           </div>
         </div>

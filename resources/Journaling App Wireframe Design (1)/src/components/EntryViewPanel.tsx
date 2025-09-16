@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { X, Maximize2, Calendar, Clock, FileText, Sparkles } from 'lucide-react';
+import { X, Maximize2, Calendar, Clock, FileText, Sparkles, ChevronLeft, ChevronRight, Edit, Trash2, MoreHorizontal } from 'lucide-react';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from './ui/dropdown-menu';
 
 interface DiaryEntry {
   id: string;
@@ -28,9 +29,17 @@ interface EntryViewPanelProps {
   isOpen: boolean;
   onClose: () => void;
   onExpand: () => void;
+  // Add navigation props
+  currentEntryIndex: number;
+  totalEntries: number;
+  onPreviousEntry: () => void;
+  onNextEntry: () => void;
+  // Add edit/delete props
+  onEdit: (entry: DiaryEntry) => void;
+  onDelete: (entry: DiaryEntry) => void;
 }
 
-export function EntryViewPanel({ entry, isOpen, onClose, onExpand }: EntryViewPanelProps) {
+export function EntryViewPanel({ entry, isOpen, onClose, onExpand, currentEntryIndex, totalEntries, onPreviousEntry, onNextEntry, onEdit, onDelete }: EntryViewPanelProps) {
   const [activeTab, setActiveTab] = useState<'journal' | 'ai'>('journal');
   
   if (!entry) return null;
@@ -40,7 +49,7 @@ export function EntryViewPanel({ entry, isOpen, onClose, onExpand }: EntryViewPa
   };
 
   const formatDay = (date: number) => {
-    const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+    const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
     // September 2025 starts on Monday (1st = Monday)
     const dayIndex = date % 7;
     return days[dayIndex === 0 ? 6 : dayIndex - 1];
@@ -58,18 +67,41 @@ export function EntryViewPanel({ entry, isOpen, onClose, onExpand }: EntryViewPa
       
       {/* Panel */}
       <div className={`
-        fixed top-0 right-0 h-full w-96 bg-white shadow-2xl border-l border-gray-200 z-40
+        fixed top-0 right-0 h-full w-[28rem] bg-white shadow-2xl border-l border-gray-200 z-40
         transform transition-transform duration-300 ease-in-out
         ${isOpen ? 'translate-x-0' : 'translate-x-full'}
       `}>
         {/* Header */}
         <div className="border-b border-gray-100 p-6">
           <div className="flex items-center justify-between mb-4">
-            <div className="flex items-center gap-2 text-sm text-gray-500">
-              <Calendar size={16} />
-              <span>{formatDate(entry.date)}</span>
-              <span>•</span>
-              <span>{formatDay(entry.date)}</span>
+            <div className="flex items-center gap-2 px-3 py-1.5 bg-pink-50 rounded-full border border-pink-100">
+              <Calendar size={14} className="text-pink-600" />
+              <span className="text-sm text-pink-700">Sep. {entry.date}</span>
+              <span className="text-pink-500">•</span>
+              <span className="text-sm text-pink-700">
+                {(() => {
+                  const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+                  // September 2025 starts on Monday (1st = Monday)
+                  const dayIndex = entry.date % 7;
+                  return days[dayIndex === 0 ? 6 : dayIndex - 1];
+                })()}
+              </span>
+              <div className="flex items-center gap-1 ml-2">
+                <button
+                  onClick={onPreviousEntry}
+                  className="w-5 h-5 rounded-full bg-white hover:bg-pink-100 flex items-center justify-center transition-colors"
+                  title="Previous entry"
+                >
+                  <ChevronLeft size={10} className="text-pink-600" />
+                </button>
+                <button
+                  onClick={onNextEntry}
+                  className="w-5 h-5 rounded-full bg-white hover:bg-pink-100 flex items-center justify-center transition-colors"
+                  title="Next entry"
+                >
+                  <ChevronRight size={10} className="text-pink-600" />
+                </button>
+              </div>
             </div>
             <div className="flex items-center gap-2">
               <button
@@ -88,15 +120,38 @@ export function EntryViewPanel({ entry, isOpen, onClose, onExpand }: EntryViewPa
             </div>
           </div>
           
+          {/* Navigation for multiple entries */}
+          {/* Removed - navigation moved to date area */}
+          
           <div className="flex items-center gap-3 mb-3">
             <span className="text-3xl">{entry.mood}</span>
-            <div>
-              <h2 className="text-gray-800">{entry.title}</h2>
+            <div className="flex-1 min-w-0">
+              <h2 className="text-gray-800 truncate">{entry.title}</h2>
               <div className="flex items-center gap-2 text-sm text-gray-500 mt-1">
                 <Clock size={14} />
                 <span>Added today</span>
               </div>
             </div>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <button className="w-8 h-8 rounded-lg hover:bg-gray-100 flex items-center justify-center transition-colors flex-shrink-0">
+                  <MoreHorizontal size={16} className="text-gray-500" />
+                </button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-32">
+                <DropdownMenuItem onClick={() => onEdit(entry)} className="flex items-center gap-2">
+                  <Edit size={14} />
+                  Edit
+                </DropdownMenuItem>
+                <DropdownMenuItem 
+                  onClick={() => onDelete(entry)} 
+                  className="flex items-center gap-2 text-red-600 focus:text-red-600 focus:bg-red-50"
+                >
+                  <Trash2 size={14} />
+                  Delete
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
 
           {entry.hasPhoto && (
