@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, createContext, useContext } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import { Sidebar } from '@/components/sidebar'
@@ -9,6 +9,21 @@ import { PanelLeftIcon } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 
 type ViewMode = 'calendar' | 'timeline'
+
+interface LayoutContextType {
+  currentView: ViewMode
+  setCurrentView: (view: ViewMode) => void
+}
+
+const LayoutContext = createContext<LayoutContextType | null>(null)
+
+export function useLayout() {
+  const context = useContext(LayoutContext)
+  if (!context) {
+    throw new Error('useLayout must be used within ProtectedLayout')
+  }
+  return context
+}
 
 export default function ProtectedLayout({ children }: { children: React.ReactNode }) {
   const [isAuthenticated, setIsAuthenticated] = useState(false)
@@ -66,74 +81,76 @@ export default function ProtectedLayout({ children }: { children: React.ReactNod
   }
 
   return (
-    <div className="flex min-h-screen bg-gray-50">
-      {/* Desktop Sidebar */}
-      {!isMobile && (
-        <Sidebar 
-          currentView={currentView}
-          onViewChange={setCurrentView}
-          entriesCount={entriesCount}
-        />
-      )}
-
-      {/* Mobile Header */}
-      {isMobile && (
-        <div className="fixed top-0 left-0 right-0 z-50 bg-white border-b border-pink-100 px-4 py-3">
-          <div className="flex items-center gap-3">
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => setMobileMenuOpen(true)}
-              className="shrink-0"
-            >
-              <PanelLeftIcon size={20} />
-            </Button>
-            
-            <div className="flex items-center gap-3">
-              <div className="w-8 h-8 bg-gradient-to-r from-pink-400 to-rose-400 rounded-lg flex items-center justify-center">
-                <span className="text-white text-sm">💕</span>
-              </div>
-              <h1 className="text-gray-800 font-medium">haru.</h1>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Mobile Sidebar Overlay */}
-      {isMobile && mobileMenuOpen && (
-        <div className="fixed inset-0 z-50 flex">
-          {/* Backdrop */}
-          <div 
-            className="flex-1 bg-black/20"
-            onClick={() => setMobileMenuOpen(false)}
+    <LayoutContext.Provider value={{ currentView, setCurrentView }}>
+      <div className="flex min-h-screen bg-gray-50">
+        {/* Desktop Sidebar */}
+        {!isMobile && (
+          <Sidebar 
+            currentView={currentView}
+            onViewChange={setCurrentView}
+            entriesCount={entriesCount}
           />
-          {/* Sidebar */}
-          <div className="w-80 bg-white shadow-xl">
-            <div className="p-4 border-b border-pink-100">
-              <button
-                onClick={() => setMobileMenuOpen(false)}
-                className="text-gray-500 hover:text-gray-700"
-              >
-                ×
-              </button>
-            </div>
-            <Sidebar 
-              currentView={currentView}
-              onViewChange={(view) => {
-                setCurrentView(view)
-                setMobileMenuOpen(false)
-              }}
-              entriesCount={entriesCount}
-              isMobile={true}
-            />
-          </div>
-        </div>
-      )}
+        )}
 
-      {/* Main Content */}
-      <main className={`flex-1 ${isMobile ? 'pt-16' : ''}`}>
-        {children}
-      </main>
-    </div>
+        {/* Mobile Header */}
+        {isMobile && (
+          <div className="fixed top-0 left-0 right-0 z-50 bg-white border-b border-pink-100 px-4 py-3">
+            <div className="flex items-center gap-3">
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => setMobileMenuOpen(true)}
+                className="shrink-0"
+              >
+                <PanelLeftIcon size={20} />
+              </Button>
+              
+              <div className="flex items-center gap-3">
+                <div className="w-8 h-8 bg-gradient-to-r from-pink-400 to-rose-400 rounded-lg flex items-center justify-center">
+                  <span className="text-white text-sm">💕</span>
+                </div>
+                <h1 className="text-gray-800 font-medium">haru.</h1>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Mobile Sidebar Overlay */}
+        {isMobile && mobileMenuOpen && (
+          <div className="fixed inset-0 z-50 flex">
+            {/* Backdrop */}
+            <div 
+              className="flex-1 bg-black/20"
+              onClick={() => setMobileMenuOpen(false)}
+            />
+            {/* Sidebar */}
+            <div className="w-80 bg-white shadow-xl">
+              <div className="p-4 border-b border-pink-100">
+                <button
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="text-gray-500 hover:text-gray-700"
+                >
+                  ×
+                </button>
+              </div>
+              <Sidebar 
+                currentView={currentView}
+                onViewChange={(view) => {
+                  setCurrentView(view)
+                  setMobileMenuOpen(false)
+                }}
+                entriesCount={entriesCount}
+                isMobile={true}
+              />
+            </div>
+          </div>
+        )}
+
+        {/* Main Content */}
+        <main className={`flex-1 ${isMobile ? 'pt-16' : ''}`}>
+          {children}
+        </main>
+      </div>
+    </LayoutContext.Provider>
   )
 }
