@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import { Eye, EyeOff } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -15,6 +16,7 @@ export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+  const router = useRouter()
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -31,8 +33,7 @@ export default function LoginPage() {
         setError(error.message)
       } else {
         console.log('Login successful:', data)
-        // 나중에 라우팅 추가
-        alert('로그인 성공!')
+        router.push('/dashboard')
       }
     } catch (err) {
       console.error('Login error:', err)
