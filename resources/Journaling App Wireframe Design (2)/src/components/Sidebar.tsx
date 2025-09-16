@@ -1,5 +1,5 @@
 import React from 'react';
-import { Calendar, Clock } from 'lucide-react';
+import { Calendar, Clock, LogOut, User } from 'lucide-react';
 
 type ViewMode = 'calendar' | 'timeline';
 
@@ -8,9 +8,10 @@ interface SidebarProps {
   onViewChange: (view: ViewMode) => void;
   entriesCount: number;
   isMobile?: boolean;
+  onLogout?: () => void;
 }
 
-export function Sidebar({ currentView, onViewChange, entriesCount, isMobile = false }: SidebarProps) {
+export function Sidebar({ currentView, onViewChange, entriesCount, isMobile = false, onLogout = () => {} }: SidebarProps) {
   const menuItems = [
     {
       id: 'calendar' as ViewMode,
@@ -90,7 +91,8 @@ export function Sidebar({ currentView, onViewChange, entriesCount, isMobile = fa
 
       {/* Bottom Section */}
       {!isMobile && (
-        <div className="p-6 border-t border-pink-100">
+        <div className="p-6 space-y-4">
+          {/* Motivation */}
           <div className="bg-gradient-to-r from-pink-50 to-rose-50 rounded-xl p-4">
             <div className="flex items-center gap-3 mb-2">
               <span className="text-2xl">✨</span>
@@ -99,6 +101,27 @@ export function Sidebar({ currentView, onViewChange, entriesCount, isMobile = fa
             <p className="text-sm text-gray-600">
               You've written {entriesCount} entries this month. Every thought matters.
             </p>
+          </div>
+          
+          {/* Divider */}
+          <div className="border-t border-pink-100 -mx-6"></div>
+          
+          {/* User Profile */}
+          <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
+            <div className="w-8 h-8 bg-gradient-to-r from-purple-400 to-indigo-400 rounded-full flex items-center justify-center">
+              <User size={16} className="text-white" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-sm text-gray-700 truncate">Demo User</p>
+              <p className="text-xs text-gray-500">demo@haru.app</p>
+            </div>
+            <button
+              onClick={onLogout}
+              className="w-6 h-6 rounded hover:bg-gray-200 flex items-center justify-center transition-colors"
+              title="Sign out"
+            >
+              <LogOut size={14} className="text-gray-500" />
+            </button>
           </div>
         </div>
       )}

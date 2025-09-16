@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { X, Maximize2, Calendar, Clock, FileText, Sparkles, ChevronLeft, ChevronRight, Edit, Trash2, MoreHorizontal } from 'lucide-react';
+import { X, Maximize2, Calendar, Clock, FileText, Sparkles, ChevronLeft, ChevronRight, Trash2, MoreHorizontal } from 'lucide-react';
+import { motion } from 'motion/react';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from './ui/dropdown-menu';
 
 interface DiaryEntry {
@@ -34,12 +35,11 @@ interface EntryViewPanelProps {
   totalEntries: number;
   onPreviousEntry: () => void;
   onNextEntry: () => void;
-  // Add edit/delete props
-  onEdit: (entry: DiaryEntry) => void;
+  // Add edit/delete props - Remove onEdit since we're removing Edit button
   onDelete: (entry: DiaryEntry) => void;
 }
 
-export function EntryViewPanel({ entry, isOpen, onClose, onExpand, currentEntryIndex, totalEntries, onPreviousEntry, onNextEntry, onEdit, onDelete }: EntryViewPanelProps) {
+export function EntryViewPanel({ entry, isOpen, onClose, onExpand, currentEntryIndex, totalEntries, onPreviousEntry, onNextEntry, onDelete }: EntryViewPanelProps) {
   const [activeTab, setActiveTab] = useState<'journal' | 'ai'>('journal');
   
   if (!entry) return null;
@@ -106,10 +106,10 @@ export function EntryViewPanel({ entry, isOpen, onClose, onExpand, currentEntryI
             <div className="flex items-center gap-2">
               <button
                 onClick={onExpand}
-                className="w-8 h-8 rounded-lg bg-gray-100 hover:bg-gray-200 flex items-center justify-center transition-colors"
+                className="w-8 h-8 rounded-lg bg-gray-100 hover:bg-gray-200 flex items-center justify-center transition-colors group"
                 title="Expand to full screen"
               >
-                <Maximize2 size={16} className="text-gray-600" />
+                <Maximize2 size={16} className="text-gray-600 group-hover:text-pink-600 transition-colors" />
               </button>
               <button
                 onClick={onClose}
@@ -139,10 +139,6 @@ export function EntryViewPanel({ entry, isOpen, onClose, onExpand, currentEntryI
                 </button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-32">
-                <DropdownMenuItem onClick={() => onEdit(entry)} className="flex items-center gap-2">
-                  <Edit size={14} />
-                  Edit
-                </DropdownMenuItem>
                 <DropdownMenuItem 
                   onClick={() => onDelete(entry)} 
                   className="flex items-center gap-2 text-red-600 focus:text-red-600 focus:bg-red-50"

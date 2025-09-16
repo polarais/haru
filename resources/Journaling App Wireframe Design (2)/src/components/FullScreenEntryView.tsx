@@ -32,7 +32,7 @@ interface FullScreenEntryViewProps {
   totalEntries?: number;
   onPreviousEntry?: () => void;
   onNextEntry?: () => void;
-  // Add edit/delete props
+  // Add onEdit back for fullscreen editing
   onEdit?: (entry: DiaryEntry) => void;
   onDelete?: (entry: DiaryEntry) => void;
 }
@@ -211,7 +211,13 @@ export function FullScreenEntryView({ entry, onClose, currentEntryIndex, totalEn
             <div className="prose prose-gray max-w-none">
               {/* Journal Content Tab */}
               {(!entry.aiReflection || activeTab === 'journal') && (
-                <div className="text-gray-800 leading-relaxed whitespace-pre-wrap text-base lg:text-lg">
+                <div 
+                  className={`text-gray-800 leading-relaxed whitespace-pre-wrap text-base lg:text-lg ${
+                    onEdit ? 'cursor-pointer hover:bg-gray-50 rounded-lg p-4 -m-4 transition-colors' : ''
+                  }`}
+                  onClick={onEdit ? () => onEdit(entry) : undefined}
+                  title={onEdit ? "Click to edit" : undefined}
+                >
                   {entry.content}
                 </div>
               )}

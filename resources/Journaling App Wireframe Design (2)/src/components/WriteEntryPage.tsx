@@ -14,6 +14,8 @@ interface WriteEntryPageProps {
     photoUrl?: string;
     photoFile?: File;
   };
+  // Add auto-save handler for edit mode
+  onAutoSave?: (entry: { date: number; mood: string; title: string; content: string; photoUrl?: string; photoFile?: File }) => void;
 }
 
 type WriteMode = 'journal' | 'chat';
@@ -38,7 +40,7 @@ const aiResponses = [
   "Your reflection shows a lot of self-awareness. What patterns do you notice in your experiences?"
 ];
 
-export function WriteEntryPage({ selectedDate, onSave, onCancel, onReflect, existingEntry }: WriteEntryPageProps) {
+export function WriteEntryPage({ selectedDate, onSave, onCancel, onReflect, existingEntry, onAutoSave }: WriteEntryPageProps) {
   const [writeMode, setWriteMode] = useState<WriteMode>('journal');
   const [selectedMood, setSelectedMood] = useState<string>('');
   const [title, setTitle] = useState<string>('');
@@ -70,6 +72,101 @@ export function WriteEntryPage({ selectedDate, onSave, onCancel, onReflect, exis
     chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [chatMessages]);
 
+  // Auto-save when content changes (Notion-like behavior)
+  useEffect(() => {
+    // Don't auto-save if there's no mood selected or no content
+    if (!selectedMood || (!content.trim() && writeMode === 'journal')) {
+      return;
+    }
+
+    // For edit mode, use auto-save handler if available (doesn't return to main screen)
+    if (existingEntry && onAutoSave) {
+      const timeoutId = setTimeout(() => {
+        handleAutoSaveOnly();
+      }, 2000); // Save after 2 seconds of no typing
+
+      return () => clearTimeout(timeoutId);
+    }
+
+    // For new entries, don't auto-save to avoid jumping back to main screen immediately
+    if (!existingEntry) {
+      return;
+    }
+
+    // Fallback to regular auto-save for other cases
+    const timeoutId = setTimeout(() => {
+      handleAutoSave();
+    }, 2000); // Save after 2 seconds of no typing
+
+    return () => clearTimeout(timeoutId);
+  }, [selectedMood, title, content, selectedPhoto, photoFile, writeMode, chatMessages, existingEntry, onAutoSave]);
+
+  const handleAutoSave = () => {
+    let finalContent = content;
+    let finalTitle = title;
+
+    if (writeMode === 'chat') {
+      // Generate content from chat messages
+      const userMessages = chatMessages
+        .filter(msg => msg.type === 'user')
+        .map(msg => msg.content)
+        .join(' ');
+      
+      finalContent = userMessages || 'Reflected through AI conversation';
+      finalTitle = title || 'AI Reflection Session';
+    }
+
+    if (!selectedMood || (!finalContent.trim() && writeMode === 'journal')) {
+      return; // Don't save if required fields are empty
+    }
+
+    onSave({
+      date: selectedDate || 4,
+      mood: selectedMood,
+      title: finalTitle || 'Untitled Entry',
+      content: finalContent,
+      photoUrl: selectedPhoto || undefined,
+      photoFile: photoFile || undefined
+    });
+  };
+
+  const handleAutoSaveOnly = () => {
+    let finalContent = content;
+    let finalTitle = title;
+
+    if (writeMode === 'chat') {
+      // Generate content from chat messages
+      const userMessages = chatMessages
+        .filter(msg => msg.type === 'user')
+        .map(msg => msg.content)
+        .join(' ');
+      
+      finalContent = userMessages || 'Reflected through AI conversation';
+      finalTitle = title || 'AI Reflection Session';
+    }
+
+    if (!selectedMood || (!finalContent.trim() && writeMode === 'journal')) {
+      return; // Don't save if required fields are empty
+    }
+
+    onAutoSave({
+      date: selectedDate || 4,
+      mood: selectedMood,
+      title: finalTitle || 'Untitled Entry',
+      content: finalContent,
+      photoUrl: selectedPhoto || undefined,
+      photoFile: photoFile || undefined
+    });
+  };
+
+  const handleBackButton = () => {
+    // Auto-save before going back (Notion-like behavior)
+    if (selectedMood && ((writeMode === 'journal' && content.trim()) || writeMode === 'chat')) {
+      handleAutoSave();
+    }
+    onCancel();
+  };
+
   const handleModeSwitch = (newMode: WriteMode) => {
     if (newMode === writeMode) return;
     
@@ -78,7 +175,7 @@ export function WriteEntryPage({ selectedDate, onSave, onCancel, onReflect, exis
       if (content.trim()) {
         let journalContent = content.trim();
         if (title.trim()) {
-          journalContent = `${title.trim()}\n\n${journalContent}`;
+          journalContent = `${title.trim()}\\n\\n${journalContent}`;
         }
         
         // Put content in the input field instead of sending immediately
@@ -111,12 +208,12 @@ export function WriteEntryPage({ selectedDate, onSave, onCancel, onReflect, exis
         .map(msg => msg.content);
       
       if (userMessages.length > 0) {
-        const combinedContent = userMessages.join('\n\n');
+        const combinedContent = userMessages.join('\\n\\n');
         setContent(combinedContent);
         
         // If there's no title and we have content, suggest a title
         if (!title.trim() && combinedContent) {
-          const firstLine = combinedContent.split('\n')[0];
+          const firstLine = combinedContent.split('\\n')[0];
           if (firstLine.length > 50) {
             setTitle(firstLine.substring(0, 50) + '...');
           } else {
@@ -130,8 +227,8 @@ export function WriteEntryPage({ selectedDate, onSave, onCancel, onReflect, exis
         const userMessages = chatMessages
           .filter(msg => msg.type === 'user')
           .map(msg => msg.content);
-        const existingContent = content || userMessages.join('\\n\\n') || '';
-        const newContent = existingContent ? `${existingContent}\\n\\n${currentMessage}` : currentMessage;
+        const existingContent = content || userMessages.join('\\\\n\\\\n') || '';
+        const newContent = existingContent ? `${existingContent}\\\\n\\\\n${currentMessage}` : currentMessage;
         setContent(newContent);
         
         // Clear the chat input
@@ -168,35 +265,6 @@ export function WriteEntryPage({ selectedDate, onSave, onCancel, onReflect, exis
       setChatMessages(prev => [...prev, aiMessage]);
       setIsTyping(false);
     }, 1000 + Math.random() * 2000);
-  };
-
-  const handleSave = () => {
-    let finalContent = content;
-    let finalTitle = title;
-
-    if (writeMode === 'chat') {
-      // Generate content from chat messages
-      const userMessages = chatMessages
-        .filter(msg => msg.type === 'user')
-        .map(msg => msg.content)
-        .join(' ');
-      
-      finalContent = userMessages || 'Reflected through AI conversation';
-      finalTitle = title || 'AI Reflection Session';
-    }
-
-    if (!selectedMood || (!finalContent.trim() && writeMode === 'journal')) {
-      return; // Don't save if required fields are empty
-    }
-
-    onSave({
-      date: selectedDate || 4,
-      mood: selectedMood,
-      title: finalTitle || 'Untitled Entry',
-      content: finalContent,
-      photoUrl: selectedPhoto || undefined,
-      photoFile: photoFile || undefined
-    });
   };
 
   const handleReflect = () => {
@@ -294,7 +362,7 @@ export function WriteEntryPage({ selectedDate, onSave, onCancel, onReflect, exis
             {/* Left Section - Back Button & Title */}
             <div className="flex items-center gap-3 flex-1 lg:flex-none">
               <button
-                onClick={onCancel}
+                onClick={handleBackButton}
                 className="w-10 h-10 rounded-full bg-gray-100 hover:bg-gray-200 flex items-center justify-center transition-colors"
               >
                 <ArrowLeft size={20} className="text-gray-600" />
@@ -337,7 +405,7 @@ export function WriteEntryPage({ selectedDate, onSave, onCancel, onReflect, exis
               </div>
             </div>
             
-            {/* Right Section - Action Buttons - Desktop Only */}
+            {/* Right Section - Only Reflect Button */}
             <div className="hidden lg:flex justify-end gap-4">
               {writeMode === 'journal' && onReflect && (
                 <button
@@ -350,15 +418,6 @@ export function WriteEntryPage({ selectedDate, onSave, onCancel, onReflect, exis
                   Reflect with AI
                 </button>
               )}
-              <button
-                onClick={handleSave}
-                disabled={!selectedMood || (writeMode === 'journal' && !content.trim())}
-                className="px-6 py-2 bg-gradient-to-r from-pink-500 to-rose-500 text-white rounded-lg 
-                         hover:from-pink-600 hover:to-rose-600 disabled:opacity-50 disabled:cursor-not-allowed
-                         transition-all duration-200"
-              >
-                Save
-              </button>
             </div>
           </div>
 
@@ -537,7 +596,7 @@ export function WriteEntryPage({ selectedDate, onSave, onCancel, onReflect, exis
                   <button
                     onClick={handleReflect}
                     disabled={!selectedMood || !content.trim()}
-                    className="flex-1 py-4 bg-gradient-to-r from-purple-500 to-indigo-500 text-white rounded-xl 
+                    className="w-full py-4 bg-gradient-to-r from-purple-500 to-indigo-500 text-white rounded-xl 
                              hover:from-purple-600 hover:to-indigo-600 disabled:opacity-50 disabled:cursor-not-allowed
                              transition-all duration-200 text-lg font-medium flex items-center justify-center gap-2"
                   >
@@ -545,17 +604,6 @@ export function WriteEntryPage({ selectedDate, onSave, onCancel, onReflect, exis
                     Reflect with AI
                   </button>
                 )}
-                <button
-                  onClick={handleSave}
-                  disabled={!selectedMood || (writeMode === 'journal' && !content.trim())}
-                  className={`py-4 bg-gradient-to-r from-pink-500 to-rose-500 text-white rounded-xl 
-                           hover:from-pink-600 hover:to-rose-600 disabled:opacity-50 disabled:cursor-not-allowed
-                           transition-all duration-200 text-lg font-medium ${
-                             writeMode === 'journal' && onReflect ? 'flex-1' : 'w-full'
-                           }`}
-                >
-                  Save Entry
-                </button>
               </div>
             </div>
           ) : (
@@ -621,15 +669,7 @@ export function WriteEntryPage({ selectedDate, onSave, onCancel, onReflect, exis
 
                 {/* Mobile Save Button for Chat Mode */}
                 <div className="lg:hidden mt-4">
-                  <button
-                    onClick={handleSave}
-                    disabled={!selectedMood}
-                    className="w-full py-4 bg-gradient-to-r from-pink-500 to-rose-500 text-white rounded-xl 
-                             hover:from-pink-600 hover:to-rose-600 disabled:opacity-50 disabled:cursor-not-allowed
-                             transition-all duration-200 text-lg font-medium"
-                  >
-                    Save Conversation
-                  </button>
+                  {/* Removed Save button - auto-save is now enabled */}
                 </div>
               </div>
             </div>

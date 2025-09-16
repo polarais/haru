@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { ArrowLeft, RefreshCw, Edit2, Send, Save, Check } from 'lucide-react';
+import { ArrowLeft, RefreshCw, Edit2, Send, X } from 'lucide-react';
 
 interface DiaryEntry {
   id: string;
@@ -35,6 +35,11 @@ interface AIReflectionPageProps {
     summary: string;
     chatHistory: ChatMessage[];
   }) => void;
+  // Add auto-save handler
+  onAutoSave?: (reflectionData: {
+    summary: string;
+    chatHistory: ChatMessage[];
+  }) => void;
 }
 
 const summaryTemplates = [
@@ -53,7 +58,7 @@ const aiReflectionResponses = [
   "Thank you for sharing something so personal. It takes courage to be vulnerable like this. What made you want to capture this particular feeling or experience?"
 ];
 
-export function AIReflectionPage({ entry, onClose, onSave }: AIReflectionPageProps) {
+export function AIReflectionPage({ entry, onClose, onSave, onAutoSave }: AIReflectionPageProps) {
   const [summary, setSummary] = useState(
     entry.aiReflection?.summary || summaryTemplates[Math.floor(Math.random() * summaryTemplates.length)]
   );
@@ -89,11 +94,27 @@ export function AIReflectionPage({ entry, onClose, onSave }: AIReflectionPagePro
     chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [chatMessages]);
 
+  // Auto-save when data changes (Notion-like behavior)
+  useEffect(() => {
+    // Don't auto-save immediately on mount
+    if (!summary || chatMessages.length === 0) return;
+    
+    const timeoutId = setTimeout(() => {
+      if (onAutoSave) {
+        onAutoSave({
+          summary,
+          chatHistory: chatMessages
+        });
+      }
+    }, 2000); // Auto-save after 2 seconds of no changes
+
+    return () => clearTimeout(timeoutId);
+  }, [summary, chatMessages, onAutoSave]);
+
   const handleRegenerateSummary = () => {
     const newSummary = summaryTemplates[Math.floor(Math.random() * summaryTemplates.length)];
     setSummary(newSummary);
     setEditedSummary(newSummary);
-    setIsSaved(false); // Mark as unsaved when summary changes
   };
 
   const handleEditSummary = () => {
@@ -104,7 +125,6 @@ export function AIReflectionPage({ entry, onClose, onSave }: AIReflectionPagePro
   const handleSaveSummary = () => {
     setSummary(editedSummary);
     setIsEditingSummary(false);
-    setIsSaved(false); // Mark as unsaved when summary is edited
   };
 
   const handleCancelEdit = () => {
@@ -125,7 +145,6 @@ export function AIReflectionPage({ entry, onClose, onSave }: AIReflectionPagePro
     setChatMessages(prev => [...prev, userMessage]);
     setCurrentMessage('');
     setIsTyping(true);
-    setIsSaved(false); // Mark as unsaved when new message is added
 
     // Simulate AI response delay
     setTimeout(() => {
@@ -141,12 +160,13 @@ export function AIReflectionPage({ entry, onClose, onSave }: AIReflectionPagePro
     }, 1000 + Math.random() * 2000);
   };
 
-  const handleSaveReflection = () => {
+  const handleClose = () => {
+    // Auto-save before closing
     onSave({
       summary,
       chatHistory: chatMessages
     });
-    setIsSaved(true);
+    onClose();
   };
 
   return (
@@ -157,7 +177,7 @@ export function AIReflectionPage({ entry, onClose, onSave }: AIReflectionPagePro
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
               <button
-                onClick={onClose}
+                onClick={handleClose}
                 className="w-10 h-10 rounded-full bg-gray-100 hover:bg-gray-200 flex items-center justify-center transition-colors"
               >
                 <ArrowLeft size={20} className="text-gray-600" />
@@ -173,38 +193,11 @@ export function AIReflectionPage({ entry, onClose, onSave }: AIReflectionPagePro
                   </div>
                   {entry.aiReflection && (
                     <>
-                      <span>•</span>
-                      <span className="text-purple-600">Reflection saved</span>
                     </>
                   )}
                 </div>
               </div>
             </div>
-            
-            {/* Save Button */}
-            <button
-              onClick={handleSaveReflection}
-              className={`
-                flex items-center gap-2 px-4 py-2 rounded-lg transition-all duration-200
-                ${isSaved 
-                  ? 'bg-green-100 text-green-700 border-2 border-green-200' 
-                  : 'bg-gradient-to-r from-purple-500 to-indigo-500 text-white hover:from-purple-600 hover:to-indigo-600'
-                }
-              `}
-              disabled={isSaved}
-            >
-              {isSaved ? (
-                <>
-                  <Check size={18} />
-                  Saved
-                </>
-              ) : (
-                <>
-                  <Save size={18} />
-                  Save Entry
-                </>
-              )}
-            </button>
           </div>
         </div>
       </header>
@@ -233,10 +226,19 @@ export function AIReflectionPage({ entry, onClose, onSave }: AIReflectionPagePro
           </div>
 
           {/* Right Side - AI Reflection */}
-          <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden flex flex-col">
+          <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden flex flex-col relative">
+            {/* Small X button in top-right corner */}
+            <button
+              onClick={handleClose}
+              className="absolute top-3 right-3 w-8 h-8 rounded-full bg-white hover:bg-red-50 border border-gray-200 hover:border-red-200 flex items-center justify-center transition-all duration-200 shadow-sm hover:shadow-md z-10 group"
+              title="Close reflection"
+            >
+              <X size={16} className="text-gray-600 group-hover:text-red-500 transition-colors" />
+            </button>
+
             {/* AI Summary Card */}
             <div className="p-6 border-b border-gray-100 bg-gradient-to-r from-purple-50 to-indigo-50">
-              <div className="flex items-start justify-between mb-3">
+              <div className="flex items-start justify-between mb-3 pr-8">
                 <h3 className="text-purple-800">AI Summary</h3>
                 <div className="flex gap-2">
                   <button
