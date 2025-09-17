@@ -1,124 +1,77 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { useRouter } from 'next/navigation'
 import { MoodCalendar } from '@/components/mood-calendar'
 import { EntryTimeline } from '@/components/entry-timeline'
 import { EntryViewPanel } from '@/components/entry-view-panel'
+import { FloatingAddButton } from '@/components/floating-add-button'
+import { DiaryAPI } from '@/lib/diary-api'
+import { DiaryEntry, DiaryEntryDisplay } from '@/lib/types'
 import { useLayout } from '../layout'
-
-interface DiaryEntry {
-  id: string
-  date: number
-  mood: string
-  title: string
-  content: string
-  preview: string
-  hasPhoto?: boolean
-  photoUrl?: string
-  photoFile?: File
-  aiReflection?: {
-    summary: string
-    chatHistory: Array<{
-      id: string
-      type: 'user' | 'ai'
-      content: string
-      timestamp: Date
-    }>
-    savedAt: Date
-  }
-}
 
 export default function DashboardPage() {
   const { currentView } = useLayout()
-  const [entries, setEntries] = useState<DiaryEntry[]>([])
+  const router = useRouter()
+  const [entries, setEntries] = useState<DiaryEntryDisplay[]>([])
   const [selectedDate, setSelectedDate] = useState<number>()
   const [currentMonth, setCurrentMonth] = useState(() => new Date().getMonth() + 1)
   const [currentYear, setCurrentYear] = useState(() => new Date().getFullYear())
-  const [viewingEntry, setViewingEntry] = useState<DiaryEntry | null>(null)
+  const [viewingEntry, setViewingEntry] = useState<DiaryEntryDisplay | null>(null)
   const [currentEntryIndex, setCurrentEntryIndex] = useState<number>(0)
   const [isEntryPanelOpen, setIsEntryPanelOpen] = useState(false)
   const [loading, setLoading] = useState(true)
+  const [loadingError, setLoadingError] = useState<string | null>(null)
 
-  // 임시 샘플 데이터 - resources와 동일한 구조
+  // Load real diary entries from Supabase
   useEffect(() => {
-    const today = new Date().getDate()
-    const sampleEntries: DiaryEntry[] = [
-      {
-        id: '1',
-        date: today,
-        mood: '😊',
-        title: 'Morning Gratitude',
-        content: 'This morning, watching the sunlight stream through my window, I felt grateful for all the little things in life. I made my favorite coffee and sat by the window, watching the world wake up.\n\nThere\'s something magical about the early hours when everything feels fresh and full of possibilities. Today feels like it\'s going to be a good day.',
-        preview: 'This morning, watching the sunlight stream through my window, I felt grateful for all the little things...',
-        hasPhoto: false
-      },
-      {
-        id: '5',
-        date: today,
-        mood: '🌟',
-        title: 'Evening Reflection',
-        content: 'What a beautiful day it has been! After my morning gratitude session, I spent the day working on my passion project. There\'s something magical about following your dreams.\n\nI feel so energized and motivated. Every small step counts.',
-        preview: 'What a beautiful day it has been! After my morning gratitude session, I spent the day working...',
-        hasPhoto: false
-      },
-      {
-        id: '7',
-        date: today,
-        mood: '🎵',
-        title: 'Afternoon Music',
-        content: 'Spent some time playing my guitar this afternoon. Music has this incredible way of expressing feelings that words sometimes can\'t capture.\n\nI played some of my favorite songs and even tried writing a new melody. Music is truly therapeutic.',
-        preview: 'Spent some time playing my guitar this afternoon. Music has this incredible way of expressing feelings...',
-        hasPhoto: false
-      },
-      {
-        id: '2',
-        date: today - 1,
-        mood: '😌',
-        title: 'Peaceful Evening',
-        content: 'Had a quiet dinner by myself tonight. Sometimes solitude feels like the most precious gift. I spent time reading my favorite book and felt completely at peace with the world.',
-        preview: 'Had a quiet dinner by myself tonight. Sometimes solitude feels like the most precious gift...',
-        hasPhoto: false,
-        aiReflection: {
-          summary: 'You found deep contentment in solitude and self-care. This entry reflects a healthy relationship with being alone and the value you place on quiet moments of reflection.',
-          chatHistory: [
-            {
-              id: '1',
-              type: 'user',
-              content: 'I had such a peaceful evening alone. Is it weird that I enjoyed it more than going out?',
-              timestamp: new Date()
-            },
-            {
-              id: '2',
-              type: 'ai',
-              content: 'Not at all! Enjoying solitude is a sign of emotional maturity. It shows you\'re comfortable with yourself and can find joy in simple pleasures.',
-              timestamp: new Date()
-            }
-          ],
-          savedAt: new Date()
+    const loadEntries = async () => {
+      try {
+        setLoading(true)
+        setLoadingError(null)
+        
+        const result = await DiaryAPI.getEntries()
+        if (result.error) {
+          throw new Error(result.error)
         }
-      },
-      {
-        id: '6',
-        date: today - 1,
-        mood: '📚',
-        title: 'Reading Session',
-        content: 'Continued reading that fascinating novel I started yesterday. The characters feel so real, and their journey resonates with my own experiences. Books have this amazing power to transport us.',
-        preview: 'Continued reading that fascinating novel I started yesterday. The characters feel so real...',
-        hasPhoto: false
-      },
-      {
-        id: '3',
-        date: today - 2,
-        mood: '🥰',
-        title: 'Warm Meeting with Friends',
-        content: 'Met with a friend after a long time and had a long conversation at a cafe. We shared updates about our lives, laughed together, and had meaningful discussions. I realized how precious these moments are.',
-        preview: 'Met with a friend after a long time and had a long conversation at a cafe. We shared updates...',
-        hasPhoto: false
+
+        // Convert DiaryEntry to DiaryEntryDisplay for UI
+        const displayEntries: DiaryEntryDisplay[] = (result.data || []).map(entry => {
+          const entryDate = new Date(entry.date)
+          const textContent = DiaryAPI.contentToText(entry.content)
+          
+          return {
+            id: entry.id,
+            date: entryDate.getDate(),
+            mood: entry.mood,
+            title: entry.title || 'Untitled Entry',
+            content: textContent,
+            preview: textContent.length > 100 ? textContent.substring(0, 100) + '...' : textContent,
+            hasPhoto: DiaryAPI.contentHasPhotos(entry.content),
+            photoUrl: DiaryAPI.getFirstPhotoUrl(entry.content),
+            aiReflection: entry.ai_chats && entry.ai_chats.length > 0 ? {
+              summary: entry.summary || 'AI conversation available',
+              chatHistory: entry.ai_chats.map((chat, index) => ({
+                id: index.toString(),
+                type: chat.speaker === 'user' ? 'user' : 'ai',
+                content: chat.message,
+                timestamp: new Date(chat.timestamp)
+              })),
+              savedAt: new Date(entry.updated_at)
+            } : undefined
+          }
+        })
+
+        setEntries(displayEntries)
+      } catch (error) {
+        console.error('Error loading entries:', error)
+        setLoadingError(error instanceof Error ? error.message : 'Failed to load entries')
+      } finally {
+        setLoading(false)
       }
-    ]
-    
-    setEntries(sampleEntries)
-    setLoading(false)
+    }
+
+    loadEntries()
   }, [])
 
   const getEntriesForDate = (date: number) => {
@@ -129,9 +82,8 @@ export default function DashboardPage() {
     const dayEntries = getEntriesForDate(date)
     
     if (dayEntries.length === 0) {
-      // TODO: Navigate to write page
-      console.log('Add new entry for date:', date)
-      setSelectedDate(date)
+      // Navigate to write page with selected date
+      router.push(`/write?date=${date}`)
     } else {
       // Show first entry in panel
       const firstEntry = dayEntries[0]
@@ -218,21 +170,34 @@ export default function DashboardPage() {
   }
 
   const handleExpandToFullScreen = () => {
-    // TODO: Navigate to full screen edit mode
-    console.log('Expand to full screen:', viewingEntry)
+    if (viewingEntry) {
+      router.push(`/write?id=${viewingEntry.id}&date=${viewingEntry.date}`)
+    }
   }
 
-  const handleDeleteEntry = (entry: DiaryEntry) => {
+  const handleDeleteEntry = async (entry: DiaryEntryDisplay) => {
     const confirmed = window.confirm(
       `Are you sure you want to delete "${entry.title}"? This action cannot be undone.`
     )
     
     if (!confirmed) return
 
-    setEntries(prev => prev.filter(e => e.id !== entry.id))
-    
-    if (viewingEntry && viewingEntry.id === entry.id) {
-      handleCloseEntryPanel()
+    try {
+      const result = await DiaryAPI.deleteEntry(entry.id)
+      if (result.error) {
+        alert(`Failed to delete entry: ${result.error}`)
+        return
+      }
+
+      // Remove from local state
+      setEntries(prev => prev.filter(e => e.id !== entry.id))
+      
+      if (viewingEntry && viewingEntry.id === entry.id) {
+        handleCloseEntryPanel()
+      }
+    } catch (error) {
+      console.error('Error deleting entry:', error)
+      alert('Failed to delete entry. Please try again.')
     }
   }
 
@@ -277,6 +242,20 @@ export default function DashboardPage() {
     setSelectedDate(undefined)
   }
 
+  const handleAddNewEntry = () => {
+    const today = new Date().getDate()
+    const todayEntries = getEntriesForDate(today)
+    
+    // Check if user has already written 3 entries today
+    if (todayEntries.length >= 3) {
+      alert('You have already written 3 entries today. Come back tomorrow to write more!')
+      return
+    }
+    
+    // Navigate to write page for today
+    router.push(`/write?date=${today}`)
+  }
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-pink-50 via-rose-50 to-orange-50 flex items-center justify-center">
@@ -284,7 +263,26 @@ export default function DashboardPage() {
           <div className="w-16 h-16 bg-gradient-to-r from-pink-400 to-rose-400 rounded-2xl flex items-center justify-center mx-auto mb-4">
             <span className="text-white text-2xl">💕</span>
           </div>
-          <p className="text-gray-600">Loading...</p>
+          <p className="text-gray-600">Loading your entries...</p>
+        </div>
+      </div>
+    )
+  }
+
+  if (loadingError) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-pink-50 via-rose-50 to-orange-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-16 h-16 bg-gradient-to-r from-red-400 to-rose-400 rounded-2xl flex items-center justify-center mx-auto mb-4">
+            <span className="text-white text-2xl">⚠️</span>
+          </div>
+          <p className="text-red-600 mb-4">{loadingError}</p>
+          <button 
+            onClick={() => window.location.reload()}
+            className="px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors"
+          >
+            Retry
+          </button>
         </div>
       </div>
     )
@@ -403,6 +401,9 @@ export default function DashboardPage() {
           </div>
         )}
       </div>
+
+      {/* Floating Add Button */}
+      <FloatingAddButton onClick={handleAddNewEntry} />
     </div>
   )
 }

@@ -1,0 +1,266 @@
+import { supabase } from './supabase'
+import { DiaryEntry, DiaryEntryInsert, DiaryEntryUpdate, DiaryContentBlock, AiChatMessage, ApiResponse, SaveEntryResponse } from './types'
+
+export class DiaryAPI {
+  /**
+   * Get all diary entries for the current user
+   */
+  static async getEntries(): Promise<ApiResponse<DiaryEntry[]>> {
+    try {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) throw new Error('Not authenticated')
+
+      const { data, error } = await supabase
+        .from('diaries')
+        .select('*')
+        .eq('profile_id', user.id)
+        .eq('is_deleted', false)
+        .order('date', { ascending: false })
+        .order('created_at', { ascending: false })
+
+      if (error) throw error
+
+      return { data: data || [] }
+    } catch (error) {
+      console.error('Error fetching entries:', error)
+      return { error: error instanceof Error ? error.message : 'Failed to fetch entries' }
+    }
+  }
+
+  /**
+   * Get entries for a specific date
+   */
+  static async getEntriesForDate(date: string): Promise<ApiResponse<DiaryEntry[]>> {
+    try {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) throw new Error('Not authenticated')
+
+      const { data, error } = await supabase
+        .from('diaries')
+        .select('*')
+        .eq('profile_id', user.id)
+        .eq('date', date)
+        .eq('is_deleted', false)
+        .order('created_at', { ascending: false })
+
+      if (error) throw error
+
+      return { data: data || [] }
+    } catch (error) {
+      console.error('Error fetching entries for date:', error)
+      return { error: error instanceof Error ? error.message : 'Failed to fetch entries' }
+    }
+  }
+
+  /**
+   * Save or update a diary entry (upsert by date + title combination)
+   */
+  static async saveEntry(entry: DiaryEntryInsert, entryId?: string): Promise<ApiResponse<SaveEntryResponse>> {
+    try {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) throw new Error('Not authenticated')
+
+      // Ensure user profile exists
+      await this.ensureUserProfile(user.id)
+
+      const entryData = {
+        ...entry,
+        profile_id: user.id
+      }
+
+      let result
+      if (entryId) {
+        // Update existing entry
+        const { data, error } = await supabase
+          .from('diaries')
+          .update(entryData)
+          .eq('id', entryId)
+          .eq('profile_id', user.id)
+          .select('id, updated_at')
+          .single()
+
+        if (error) throw error
+        result = data
+      } else {
+        // Check if entry for this date already exists
+        const { data: existing } = await supabase
+          .from('diaries')
+          .select('id')
+          .eq('profile_id', user.id)
+          .eq('date', entry.date)
+          .eq('is_deleted', false)
+          .maybeSingle()
+
+        if (existing) {
+          // Update existing entry
+          const { data, error } = await supabase
+            .from('diaries')
+            .update(entryData)
+            .eq('id', existing.id)
+            .select('id, updated_at')
+            .single()
+
+          if (error) throw error
+          result = data
+        } else {
+          // Create new entry
+          const { data, error } = await supabase
+            .from('diaries')
+            .insert(entryData)
+            .select('id, updated_at')
+            .single()
+
+          if (error) throw error
+          result = data
+        }
+      }
+
+      return { data: result }
+    } catch (error) {
+      console.error('Error saving entry:', error)
+      return { error: error instanceof Error ? error.message : 'Failed to save entry' }
+    }
+  }
+
+  /**
+   * Delete a diary entry (soft delete)
+   */
+  static async deleteEntry(entryId: string): Promise<ApiResponse<boolean>> {
+    try {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) throw new Error('Not authenticated')
+
+      const { error } = await supabase
+        .from('diaries')
+        .update({ is_deleted: true })
+        .eq('id', entryId)
+        .eq('profile_id', user.id)
+
+      if (error) throw error
+
+      return { data: true }
+    } catch (error) {
+      console.error('Error deleting entry:', error)
+      return { error: error instanceof Error ? error.message : 'Failed to delete entry' }
+    }
+  }
+
+  /**
+   * Upload image to Supabase Storage and return URL
+   */
+  static async uploadImage(file: File, entryId: string): Promise<ApiResponse<string>> {
+    try {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) throw new Error('Not authenticated')
+
+      // Generate unique filename with date and random string
+      const fileExt = file.name.split('.').pop()
+      const fileName = `${Date.now()}-${Math.random().toString(36).substring(2)}.${fileExt}`
+      const filePath = `${user.id}/${entryId}/${fileName}`
+
+      const { data, error } = await supabase.storage
+        .from('diary-images')
+        .upload(filePath, file)
+
+      if (error) throw error
+
+      // Get public URL
+      const { data: publicUrlData } = supabase.storage
+        .from('diary-images')
+        .getPublicUrl(data.path)
+
+      return { data: publicUrlData.publicUrl }
+    } catch (error) {
+      console.error('Error uploading image:', error)
+      return { error: error instanceof Error ? error.message : 'Failed to upload image' }
+    }
+  }
+
+  /**
+   * Helper: Ensure user profile exists
+   */
+  private static async ensureUserProfile(userId: string): Promise<void> {
+    try {
+      const { data: existing } = await supabase
+        .from('user_profiles')
+        .select('id')
+        .eq('id', userId)
+        .maybeSingle()
+
+      if (!existing) {
+        const { error } = await supabase
+          .from('user_profiles')
+          .upsert({
+            id: userId,
+            email_confirmed: true,
+            theme_preference: 'pink',
+            auto_save_enabled: true,
+            auto_save_interval: 30
+          }, {
+            onConflict: 'id'
+          })
+
+        if (error && error.code !== '23505') { // 23505 is unique violation - ignore if profile already exists
+          console.error('Error creating user profile:', error)
+          // Still don't throw to allow the main operation to continue
+        }
+      }
+    } catch (error) {
+      console.error('Error in ensureUserProfile:', error)
+      // Don't throw - this is a helper function that shouldn't break the main flow
+    }
+  }
+
+  /**
+   * Helper: Convert text content and photo to DiaryContentBlock array
+   */
+  static textAndPhotoToContent(text: string, photoUrl?: string, photoCaption?: string): DiaryContentBlock[] {
+    const blocks: DiaryContentBlock[] = []
+
+    if (text.trim()) {
+      // Split text into paragraphs
+      const paragraphs = text.split('\n\n').filter(p => p.trim())
+      paragraphs.forEach(paragraph => {
+        blocks.push({
+          type: 'paragraph',
+          text: paragraph.trim()
+        })
+      })
+    }
+
+    if (photoUrl) {
+      blocks.push({
+        type: 'image',
+        url: photoUrl,
+        caption: photoCaption
+      })
+    }
+
+    return blocks
+  }
+
+  /**
+   * Helper: Extract text content from DiaryContentBlock array
+   */
+  static contentToText(content: DiaryContentBlock[]): string {
+    return content
+      .filter(block => block.type === 'paragraph')
+      .map(block => block.text)
+      .join('\n\n')
+  }
+
+  /**
+   * Helper: Check if content has photos
+   */
+  static contentHasPhotos(content: DiaryContentBlock[]): boolean {
+    return content.some(block => block.type === 'image')
+  }
+
+  /**
+   * Helper: Get first photo URL from content
+   */
+  static getFirstPhotoUrl(content: DiaryContentBlock[]): string | undefined {
+    const imageBlock = content.find(block => block.type === 'image')
+    return imageBlock?.url
+  }
+}
