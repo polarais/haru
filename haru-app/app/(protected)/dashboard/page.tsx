@@ -289,118 +289,130 @@ export default function DashboardPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-pink-50 via-rose-50 to-orange-50 flex flex-col relative">
-      {/* Header */}
-      <header className="bg-white/80 backdrop-blur-sm border-b border-pink-100 sticky top-0 z-10">
-        <div className="px-4 lg:px-6 py-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-gray-800 font-medium">
-                {currentView === 'calendar' ? 'Calendar' : 'Time Table'}
-              </h1>
-              <p className="text-sm text-gray-500 mt-1">
-                {currentView === 'calendar' 
-                  ? 'Track your daily moods and memories' 
-                  : 'Review all your journal entries'
-                }
-              </p>
-            </div>
-            {/* Today Button - Only show in calendar view */}
-            {currentView === 'calendar' && (
-              <div className="flex flex-col items-end">
-                <button 
-                  onClick={handleGoToToday}
-                  className="px-4 py-2 rounded-lg bg-pink-100 hover:bg-pink-200 transition-colors"
-                >
-                  <span className="text-pink-700">Today</span>
-                </button>
-                <p className="text-xs text-gray-500 mt-1">
-                  Today is {new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })}
+    <div className="min-h-screen bg-gradient-to-br from-pink-50 via-rose-50 to-orange-50 flex relative">
+      {/* Sidebar space placeholder when panel is open */}
+      <div className={`
+        hidden lg:block h-screen transition-all duration-300 ease-in-out flex-shrink-0
+        ${isEntryPanelOpen ? '-translate-x-full opacity-0 w-0' : 'translate-x-0 opacity-100 w-0'}
+      `} />
+
+      {/* Main Content Area */}
+      <div className={`
+        flex-1 flex flex-col transition-all duration-300 ease-in-out
+        ${isEntryPanelOpen ? 'lg:mr-[28rem]' : ''}
+      `}>
+        {/* Header */}
+        <header className="bg-white/80 backdrop-blur-sm border-b border-pink-100 sticky top-0 z-10">
+          <div className="px-4 lg:px-6 py-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <h1 className="text-gray-800 font-medium">
+                  {currentView === 'calendar' ? 'Calendar' : 'Time Table'}
+                </h1>
+                <p className="text-sm text-gray-500 mt-1">
+                  {currentView === 'calendar' 
+                    ? 'Track your daily moods and memories' 
+                    : 'Review all your journal entries'
+                  }
                 </p>
               </div>
-            )}
-          </div>
-        </div>
-      </header>
-
-      {/* Content Area */}
-      <div className="flex-1 p-4 lg:p-6 overflow-hidden relative">
-        {currentView === 'calendar' ? (
-          <div className="max-w-4xl mx-auto h-full flex items-center justify-center">
-            <div className="w-full h-full lg:h-auto">
-              <MoodCalendar 
-                onDateClick={handleDateClick}
-                onEntryClick={handleEntryClick}
-                onAddNewEntry={handleDateClick}
-                selectedDate={selectedDate}
-                entries={entries}
-                currentMonth={currentMonth}
-                currentYear={currentYear}
-                onPreviousMonth={handlePreviousMonth}
-                onNextMonth={handleNextMonth}
-              />
+              {/* Today Button - Only show in calendar view */}
+              {currentView === 'calendar' && (
+                <div className="flex flex-col items-end">
+                  <button 
+                    onClick={handleGoToToday}
+                    className="px-4 py-2 rounded-lg bg-pink-100 hover:bg-pink-200 transition-colors"
+                  >
+                    <span className="text-pink-700">Today</span>
+                  </button>
+                  <p className="text-xs text-gray-500 mt-1">
+                    Today is {new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })}
+                  </p>
+                </div>
+              )}
             </div>
           </div>
-        ) : (
-          <div className="max-w-4xl mx-auto h-full flex items-center justify-center">
-            <div className="w-full h-full lg:h-auto">
-              <div className="bg-white rounded-xl p-4 lg:p-8 shadow-sm border border-gray-100 h-full lg:h-[calc(100vh-12rem)]">
-                <EntryTimeline 
-                  entries={entries} 
+        </header>
+
+        {/* Content Area */}
+        <div className="flex-1 p-4 lg:p-6 overflow-hidden relative">
+          {currentView === 'calendar' ? (
+            <div className="max-w-4xl mx-auto h-full flex items-center justify-center">
+              <div className="w-full h-full lg:h-auto">
+                <MoodCalendar 
+                  onDateClick={handleDateClick}
                   onEntryClick={handleEntryClick}
+                  onAddNewEntry={handleDateClick}
+                  selectedDate={selectedDate}
+                  entries={entries}
+                  currentMonth={currentMonth}
+                  currentYear={currentYear}
+                  onPreviousMonth={handlePreviousMonth}
+                  onNextMonth={handleNextMonth}
                 />
               </div>
             </div>
-          </div>
-        )}
-
-        {/* Entry View Panel - Desktop */}
-        <div className="hidden lg:block">
-          <EntryViewPanel
-            entry={viewingEntry}
-            isOpen={isEntryPanelOpen}
-            onClose={handleCloseEntryPanel}
-            onExpand={handleExpandToFullScreen}
-            currentEntryIndex={currentEntryIndex}
-            totalEntries={entries.length}
-            onPreviousEntry={handlePreviousEntry}
-            onNextEntry={handleNextEntry}
-            onDelete={handleDeleteEntry}
-          />
-        </div>
-
-        {/* Entry View Panel - Mobile (Full Screen) */}
-        {isEntryPanelOpen && viewingEntry && (
-          <div className="lg:hidden fixed inset-0 bg-white z-50">
-            <div className="h-full flex flex-col">
-              <div className="flex items-center justify-between p-4 border-b border-gray-200">
-                <h2 className="text-lg font-medium text-gray-800">Entry Details</h2>
-                <button
-                  onClick={handleCloseEntryPanel}
-                  className="w-8 h-8 rounded-lg bg-gray-100 hover:bg-gray-200 flex items-center justify-center transition-colors"
-                >
-                  <span className="text-gray-600">×</span>
-                </button>
-              </div>
-              <div className="flex-1 overflow-hidden">
-                {/* Mobile entry content would go here */}
-                <div className="p-4">
-                  <div className="flex items-center gap-3 mb-4">
-                    <span className="text-3xl">{viewingEntry.mood}</span>
-                    <div>
-                      <h3 className="text-lg font-medium text-gray-800">{viewingEntry.title}</h3>
-                      <p className="text-sm text-gray-500">Created today</p>
-                    </div>
-                  </div>
-                  <p className="text-gray-700 leading-relaxed whitespace-pre-wrap">
-                    {viewingEntry.content}
-                  </p>
+          ) : (
+            <div className="max-w-4xl mx-auto h-full flex items-center justify-center">
+              <div className="w-full h-full lg:h-auto">
+                <div className="bg-white rounded-xl p-4 lg:p-8 shadow-sm border border-gray-100 h-full lg:h-[calc(100vh-12rem)]">
+                  <EntryTimeline 
+                    entries={entries} 
+                    onEntryClick={handleEntryClick}
+                  />
                 </div>
               </div>
             </div>
-          </div>
-        )}
+          )}
+        </div>
       </div>
+
+      {/* Entry View Panel - Desktop */}
+      <div className="hidden lg:block">
+        <EntryViewPanel
+          entry={viewingEntry}
+          isOpen={isEntryPanelOpen}
+          onClose={handleCloseEntryPanel}
+          onExpand={handleExpandToFullScreen}
+          currentEntryIndex={currentEntryIndex}
+          totalEntries={entries.length}
+          onPreviousEntry={handlePreviousEntry}
+          onNextEntry={handleNextEntry}
+          onDelete={handleDeleteEntry}
+        />
+      </div>
+
+      {/* Entry View Panel - Mobile (Full Screen) */}
+      {isEntryPanelOpen && viewingEntry && (
+        <div className="lg:hidden fixed inset-0 bg-white z-50">
+          <div className="h-full flex flex-col">
+            <div className="flex items-center justify-between p-4 border-b border-gray-200">
+              <h2 className="text-lg font-medium text-gray-800">Entry Details</h2>
+              <button
+                onClick={handleCloseEntryPanel}
+                className="w-8 h-8 rounded-lg bg-gray-100 hover:bg-gray-200 flex items-center justify-center transition-colors"
+              >
+                <span className="text-gray-600">×</span>
+              </button>
+            </div>
+            <div className="flex-1 overflow-hidden">
+              {/* Mobile entry content would go here */}
+              <div className="p-4">
+                <div className="flex items-center gap-3 mb-4">
+                  <span className="text-3xl">{viewingEntry.mood}</span>
+                  <div>
+                    <h3 className="text-lg font-medium text-gray-800">{viewingEntry.title}</h3>
+                    <p className="text-sm text-gray-500">Created today</p>
+                  </div>
+                </div>
+                <p className="text-gray-700 leading-relaxed whitespace-pre-wrap">
+                  {viewingEntry.content}
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Floating Add Button */}
       <FloatingAddButton onClick={handleAddNewEntry} />

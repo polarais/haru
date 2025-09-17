@@ -56,6 +56,7 @@ export default function WriteEntryPage() {
   const [currentEntryId, setCurrentEntryId] = useState<string | null>(null)
   const [isSaving, setIsSaving] = useState(false)
   const [saveError, setSaveError] = useState<string | null>(null)
+  const [isUploadingPhoto, setIsUploadingPhoto] = useState(false)
 
   const textareaRef = useRef<HTMLTextAreaElement>(null)
   const chatEndRef = useRef<HTMLDivElement>(null)
@@ -170,18 +171,61 @@ export default function WriteEntryPage() {
     setSaveError(null)
 
     try {
-      // Upload photo first if there's a new photo file
+      let entryId = currentEntryId
       let photoUrl = selectedPhoto
-      if (photoFile && currentEntryId) {
-        const uploadResult = await DiaryAPI.uploadImage(photoFile, currentEntryId)
-        if (uploadResult.error) {
-          throw new Error(uploadResult.error)
+
+      // If we don't have an entry ID yet, create the entry first
+      if (!entryId) {
+        // Convert content to JSONB format (without photo for now)
+        const contentBlocks = DiaryAPI.textAndPhotoToContent(finalContent, null)
+        
+        // Convert chat messages to JSONB format
+        const aiChats: AiChatMessage[] = chatMessages.map(msg => ({
+          speaker: msg.type === 'user' ? 'user' : 'assistant',
+          message: msg.content,
+          timestamp: msg.timestamp.toISOString()
+        }))
+
+        // Prepare diary entry data
+        const entryData = {
+          date: `2025-09-${selectedDate.toString().padStart(2, '0')}`,
+          mood: selectedMood,
+          title: finalTitle || `Entry for ${formatDate(selectedDate)}`,
+          content: contentBlocks,
+          ai_chats: aiChats,
+          write_mode: writeMode
         }
-        photoUrl = uploadResult.data
-        setSelectedPhoto(photoUrl)
+
+        const result = await DiaryAPI.saveEntry(entryData)
+        
+        if (result.error) {
+          throw new Error(result.error)
+        }
+
+        entryId = result.data!.id
+        setCurrentEntryId(entryId)
       }
 
-      // Convert content to JSONB format
+      // Now upload photo if we have one
+      if (photoFile && entryId) {
+        console.log('Uploading photo for entry:', entryId)
+        setIsUploadingPhoto(true)
+        const uploadResult = await DiaryAPI.uploadImage(photoFile, entryId)
+        setIsUploadingPhoto(false)
+        
+        if (uploadResult.error) {
+          console.error('Photo upload failed:', uploadResult.error)
+          // Don't fail the entire save, just log the error
+          setSaveError(`Photo upload failed: ${uploadResult.error}`)
+        } else {
+          photoUrl = uploadResult.data
+          setSelectedPhoto(photoUrl)
+          setPhotoFile(null) // Clear the file after successful upload
+          console.log('Photo uploaded successfully:', photoUrl)
+        }
+      }
+
+      // Convert content to JSONB format with photo URL
       const contentBlocks = DiaryAPI.textAndPhotoToContent(finalContent, photoUrl)
       
       // Convert chat messages to JSONB format
@@ -191,9 +235,9 @@ export default function WriteEntryPage() {
         timestamp: msg.timestamp.toISOString()
       }))
 
-      // Prepare diary entry data
-      const entryData = {
-        date: `2025-09-${selectedDate.toString().padStart(2, '0')}`, // Convert to YYYY-MM-DD format
+      // Update entry with final content (including photo if uploaded)
+      const finalEntryData = {
+        date: `2025-09-${selectedDate.toString().padStart(2, '0')}`,
         mood: selectedMood,
         title: finalTitle || `Entry for ${formatDate(selectedDate)}`,
         content: contentBlocks,
@@ -201,32 +245,14 @@ export default function WriteEntryPage() {
         write_mode: writeMode
       }
 
-      const result = await DiaryAPI.saveEntry(entryData, currentEntryId || undefined)
+      const finalResult = await DiaryAPI.saveEntry(finalEntryData, entryId)
       
-      if (result.error) {
-        throw new Error(result.error)
-      }
-
-      // Update entry ID if this is a new entry
-      if (!currentEntryId && result.data) {
-        setCurrentEntryId(result.data.id)
-        
-        // If we have a photo file but couldn't upload it earlier, try now
-        if (photoFile && !photoUrl) {
-          const uploadResult = await DiaryAPI.uploadImage(photoFile, result.data.id)
-          if (uploadResult.data) {
-            const updatedContentBlocks = DiaryAPI.textAndPhotoToContent(finalContent, uploadResult.data)
-            await DiaryAPI.saveEntry({ 
-              ...entryData, 
-              content: updatedContentBlocks 
-            }, result.data.id)
-            setSelectedPhoto(uploadResult.data)
-          }
-        }
+      if (finalResult.error) {
+        throw new Error(finalResult.error)
       }
 
       setHasUnsavedChanges(false)
-      console.log('Entry saved successfully:', result.data)
+      console.log('Entry saved successfully:', finalResult.data)
       return true
     } catch (error) {
       console.error('Error saving entry:', error)
@@ -643,11 +669,12 @@ export default function WriteEntryPage() {
                   <div className="flex items-center justify-between mt-6 pt-6 border-t border-gray-100 flex-shrink-0">
                     <button 
                       onClick={handlePhotoClick}
-                      className="flex items-center gap-2 px-3 lg:px-4 py-2 text-gray-600 hover:text-gray-800 hover:bg-gray-50 rounded-lg transition-colors"
+                      disabled={isUploadingPhoto}
+                      className="flex items-center gap-2 px-3 lg:px-4 py-2 text-gray-600 hover:text-gray-800 hover:bg-gray-50 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                       <Camera size={18} />
                       <span className="hidden sm:inline">
-                        {selectedPhoto ? 'Change Photo' : 'Add Photo'}
+                        {isUploadingPhoto ? 'Uploading...' : selectedPhoto ? 'Change Photo' : 'Add Photo'}
                       </span>
                     </button>
                     <div className="text-sm text-gray-400">

@@ -88,13 +88,16 @@ export default function ProtectedLayout({ children }: { children: React.ReactNod
     <LayoutContext.Provider value={{ currentView, setCurrentView }}>
       <div className="flex min-h-screen bg-gray-50">
         {/* Desktop Sidebar - Hide on write/reflection pages */}
-        {!isMobile && !shouldHideSidebar && (
+        <div className={`
+          ${!isMobile && !shouldHideSidebar ? 'block' : 'hidden'}
+          h-screen transition-all duration-300 ease-in-out
+        `}>
           <Sidebar 
             currentView={currentView}
             onViewChange={setCurrentView}
             entriesCount={entriesCount}
           />
-        )}
+        </div>
 
         {/* Mobile Header - Hide on write/reflection pages */}
         {isMobile && !shouldHideSidebar && (

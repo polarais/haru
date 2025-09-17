@@ -150,24 +150,50 @@ export class DiaryAPI {
    */
   static async uploadImage(file: File, entryId: string): Promise<ApiResponse<string>> {
     try {
+      console.log('Starting image upload:', { fileName: file.name, fileSize: file.size, entryId })
+      
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) throw new Error('Not authenticated')
+
+      // Validate file
+      if (file.size > 10 * 1024 * 1024) {
+        throw new Error('File size too large. Maximum size is 10MB.')
+      }
+
+      if (!file.type.startsWith('image/')) {
+        throw new Error('File must be an image')
+      }
 
       // Generate unique filename with date and random string
       const fileExt = file.name.split('.').pop()
       const fileName = `${Date.now()}-${Math.random().toString(36).substring(2)}.${fileExt}`
       const filePath = `${user.id}/${entryId}/${fileName}`
 
-      const { data, error } = await supabase.storage
-        .from('diary-images')
-        .upload(filePath, file)
+      console.log('Uploading to path:', filePath)
 
-      if (error) throw error
+      // Skip bucket check for now and try direct upload
+      console.log('Attempting direct upload to diary-photos bucket...')
+
+      const { data, error } = await supabase.storage
+        .from('diary-photos')
+        .upload(filePath, file, {
+          cacheControl: '3600',
+          upsert: false
+        })
+
+      if (error) {
+        console.error('Upload error:', error)
+        throw error
+      }
+
+      console.log('Upload successful:', data)
 
       // Get public URL
       const { data: publicUrlData } = supabase.storage
-        .from('diary-images')
+        .from('diary-photos')
         .getPublicUrl(data.path)
+
+      console.log('Public URL generated:', publicUrlData.publicUrl)
 
       return { data: publicUrlData.publicUrl }
     } catch (error) {
