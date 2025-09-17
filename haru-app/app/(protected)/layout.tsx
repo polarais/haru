@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState, createContext, useContext } from 'react'
-import { useRouter } from 'next/navigation'
+import { useRouter, usePathname } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import { Sidebar } from '@/components/sidebar'
 import { useIsMobile } from '@/hooks/use-mobile'
@@ -32,7 +32,11 @@ export default function ProtectedLayout({ children }: { children: React.ReactNod
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const [entriesCount] = useState(5) // 임시 값, 나중에 실제 데이터로 교체
   const router = useRouter()
+  const pathname = usePathname()
   const isMobile = useIsMobile()
+
+  // Check if current page should hide sidebar (write or reflection pages)
+  const shouldHideSidebar = pathname === '/write' || pathname === '/reflection'
 
   useEffect(() => {
     const checkAuth = async () => {
@@ -83,8 +87,8 @@ export default function ProtectedLayout({ children }: { children: React.ReactNod
   return (
     <LayoutContext.Provider value={{ currentView, setCurrentView }}>
       <div className="flex min-h-screen bg-gray-50">
-        {/* Desktop Sidebar */}
-        {!isMobile && (
+        {/* Desktop Sidebar - Hide on write/reflection pages */}
+        {!isMobile && !shouldHideSidebar && (
           <Sidebar 
             currentView={currentView}
             onViewChange={setCurrentView}
@@ -92,8 +96,8 @@ export default function ProtectedLayout({ children }: { children: React.ReactNod
           />
         )}
 
-        {/* Mobile Header */}
-        {isMobile && (
+        {/* Mobile Header - Hide on write/reflection pages */}
+        {isMobile && !shouldHideSidebar && (
           <div className="fixed top-0 left-0 right-0 z-50 bg-white border-b border-pink-100 px-4 py-3">
             <div className="flex items-center gap-3">
               <Button
@@ -115,8 +119,8 @@ export default function ProtectedLayout({ children }: { children: React.ReactNod
           </div>
         )}
 
-        {/* Mobile Sidebar Overlay */}
-        {isMobile && mobileMenuOpen && (
+        {/* Mobile Sidebar Overlay - Hide on write/reflection pages */}
+        {isMobile && !shouldHideSidebar && mobileMenuOpen && (
           <div className="fixed inset-0 z-50 flex">
             {/* Backdrop */}
             <div 
@@ -147,7 +151,7 @@ export default function ProtectedLayout({ children }: { children: React.ReactNod
         )}
 
         {/* Main Content */}
-        <main className={`flex-1 ${isMobile ? 'pt-16' : ''}`}>
+        <main className={`flex-1 ${isMobile && !shouldHideSidebar ? 'pt-16' : ''}`}>
           {children}
         </main>
       </div>

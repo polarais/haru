@@ -147,7 +147,7 @@ export default function WriteEntryPage() {
   }, [selectedMood, title, content, selectedPhoto, photoFile, writeMode, chatMessages])
 
   const handleAutoSave = async () => {
-    if (isSaving) return // Prevent duplicate saves
+    if (isSaving) return false // Prevent duplicate saves
     
     let finalContent = content
     let finalTitle = title
@@ -163,7 +163,7 @@ export default function WriteEntryPage() {
     }
 
     if (!selectedMood || (!finalContent.trim() && writeMode === 'journal')) {
-      return
+      return false
     }
 
     setIsSaving(true)
@@ -227,10 +227,12 @@ export default function WriteEntryPage() {
 
       setHasUnsavedChanges(false)
       console.log('Entry saved successfully:', result.data)
+      return true
     } catch (error) {
       console.error('Error saving entry:', error)
       setSaveError(error instanceof Error ? error.message : 'Failed to save entry')
       setHasUnsavedChanges(true)
+      return false
     } finally {
       setIsSaving(false)
     }
@@ -337,19 +339,25 @@ export default function WriteEntryPage() {
     }, 1000 + Math.random() * 2000)
   }
 
-  const handleReflect = async () => {
+  const handleReflect = () => {
     if (!selectedMood || !content.trim() || writeMode !== 'journal') {
       return
     }
 
-    // TODO: Navigate to AI Reflection page with the current entry
-    console.log('Reflecting with AI:', {
+    // Create current entry object with unsaved data
+    const currentEntryData = {
+      id: currentEntryId || 'temp',
       date: selectedDate,
       mood: selectedMood,
-      title: title || 'Untitled Entry',
+      title: title || `Entry for ${formatDate(selectedDate)}`,
       content: content,
+      preview: content.substring(0, 100) + (content.length > 100 ? '...' : ''),
+      hasPhoto: !!selectedPhoto,
       photoUrl: selectedPhoto
-    })
+    }
+
+    // Pass entry data to reflection mode
+    router.push(`/reflection?data=${encodeURIComponent(JSON.stringify(currentEntryData))}`)
   }
 
   const handleAddCustomEmoji = () => {
@@ -481,7 +489,7 @@ export default function WriteEntryPage() {
                            hover:from-purple-600 hover:to-indigo-600 disabled:opacity-50 disabled:cursor-not-allowed
                            transition-all duration-200"
                 >
-                  Reflect with AI
+                  {isSaving ? 'Saving...' : 'Reflect with AI'}
                 </button>
               )}
             </div>
@@ -666,7 +674,7 @@ export default function WriteEntryPage() {
                                transition-all duration-200 text-lg font-medium flex items-center justify-center gap-2"
                     >
                       <MessageCircle size={20} />
-                      Reflect with AI
+                      {isSaving ? 'Saving...' : 'Reflect with AI'}
                     </button>
                   </div>
                 </div>
