@@ -5,6 +5,7 @@ import { ArrowLeft, RefreshCw, Edit2, Send, X } from 'lucide-react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { DiaryAPI } from '@/lib/diary-api'
 import { DiaryEntry, AiChatMessage } from '@/lib/types'
+import { AIService, AIProvider, SummaryRequest, AIMessage } from '@/lib/ai-service'
 
 interface ChatMessage {
   id: string
@@ -44,6 +45,7 @@ export default function ReflectionPage() {
   const [currentMessage, setCurrentMessage] = useState('')
   const [isTyping, setIsTyping] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
+  const [isGeneratingResponse, setIsGeneratingResponse] = useState(false)
   
   const chatEndRef = useRef<HTMLDivElement>(null)
 
@@ -60,6 +62,11 @@ export default function ReflectionPage() {
     const date = new Date(dateString)
     return date.toLocaleDateString('en-US', { weekday: 'long' })
   }
+
+  // Initialize AI service
+  useEffect(() => {
+    AIService.initialize()
+  }, [])
 
   // Load entry data
   useEffect(() => {
@@ -86,18 +93,8 @@ export default function ReflectionPage() {
           
           setEntry(tempEntry)
           
-          // Create new reflection
-          const newSummary = summaryTemplates[Math.floor(Math.random() * summaryTemplates.length)]
-          setSummary(newSummary)
-          setEditedSummary(newSummary)
-          
-          const initialMessage: ChatMessage = {
-            id: '1',
-            type: 'ai',
-            content: aiReflectionResponses[Math.floor(Math.random() * aiReflectionResponses.length)],
-            timestamp: new Date()
-          }
-          setChatMessages([initialMessage])
+          // Generate AI summary and initial message
+          await generateInitialReflection(tempEntry, parsedEntry.content)
           
           setLoading(false)
           return
@@ -136,16 +133,8 @@ export default function ReflectionPage() {
           }))
           setChatMessages(existingMessages)
         } else {
-          // Create new reflection
-          const newSummary = summaryTemplates[Math.floor(Math.random() * summaryTemplates.length)]
-          setSummary(newSummary)
-          const initialMessage: ChatMessage = {
-            id: '1',
-            type: 'ai',
-            content: aiReflectionResponses[Math.floor(Math.random() * aiReflectionResponses.length)],
-            timestamp: new Date()
-          }
-          setChatMessages([initialMessage])
+          // Generate new AI reflection
+          await generateInitialReflection(foundEntry, DiaryAPI.contentToText(foundEntry.content))
         }
         
         setEditedSummary(summary)
@@ -159,6 +148,78 @@ export default function ReflectionPage() {
 
     loadEntry()
   }, [entryId, entryData, router])
+
+  const generateInitialReflection = async (diaryEntry: DiaryEntry, textContent: string) => {
+    try {
+      // Generate AI summary
+      const summaryRequest: SummaryRequest = {
+        content: textContent,
+        mood: diaryEntry.mood,
+        title: diaryEntry.title
+      }
+      
+      const summaryResponse = await AIService.generateSummary(summaryRequest)
+      if (summaryResponse.error) {
+        console.error('AI summary error:', summaryResponse.error)
+        // Use fallback
+        const fallbackSummary = summaryTemplates[Math.floor(Math.random() * summaryTemplates.length)]
+        setSummary(fallbackSummary)
+        setEditedSummary(fallbackSummary)
+      } else {
+        setSummary(summaryResponse.content)
+        setEditedSummary(summaryResponse.content)
+      }
+
+      // Generate initial AI conversation
+      const initialPrompt = `사용자가 다음과 같은 일기를 작성했습니다:
+
+제목: ${diaryEntry.title}
+무드: ${diaryEntry.mood}
+내용: ${textContent}
+
+이 일기에 대해 따뜻하고 공감적인 첫 메시지를 보내주세요. 사용자의 감정을 이해하고 지지하며, 깊이 있는 질문을 통해 자기 성찰을 도와주세요.`
+      
+      const initialMessages: AIMessage[] = [
+        { role: 'user', content: initialPrompt }
+      ]
+      
+      const initialResponse = await AIService.generateResponse(initialMessages)
+      if (initialResponse.error) {
+        console.error('AI initial response error:', initialResponse.error)
+        // Use fallback
+        const fallbackMessage = aiReflectionResponses[Math.floor(Math.random() * aiReflectionResponses.length)]
+        const initialMessage: ChatMessage = {
+          id: '1',
+          type: 'ai',
+          content: fallbackMessage,
+          timestamp: new Date()
+        }
+        setChatMessages([initialMessage])
+      } else {
+        const initialMessage: ChatMessage = {
+          id: '1',
+          type: 'ai',
+          content: initialResponse.content,
+          timestamp: new Date()
+        }
+        setChatMessages([initialMessage])
+      }
+    } catch (error) {
+      console.error('Error generating initial reflection:', error)
+      // Use fallback
+      const newSummary = summaryTemplates[Math.floor(Math.random() * summaryTemplates.length)]
+      setSummary(newSummary)
+      setEditedSummary(newSummary)
+      
+      const initialMessage: ChatMessage = {
+        id: '1',
+        type: 'ai',
+        content: aiReflectionResponses[Math.floor(Math.random() * aiReflectionResponses.length)],
+        timestamp: new Date()
+      }
+      setChatMessages([initialMessage])
+    }
+  }
 
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: 'smooth' })
@@ -208,10 +269,35 @@ export default function ReflectionPage() {
     }
   }
 
-  const handleRegenerateSummary = () => {
-    const newSummary = summaryTemplates[Math.floor(Math.random() * summaryTemplates.length)]
-    setSummary(newSummary)
-    setEditedSummary(newSummary)
+  const handleRegenerateSummary = async () => {
+    if (!entry) return
+    
+    try {
+      const textContent = DiaryAPI.contentToText(entry.content)
+      const summaryRequest: SummaryRequest = {
+        content: textContent,
+        mood: entry.mood,
+        title: entry.title
+      }
+      
+      const response = await AIService.generateSummary(summaryRequest)
+      if (response.error) {
+        console.error('Regenerate summary error:', response.error)
+        // Use fallback
+        const fallbackSummary = summaryTemplates[Math.floor(Math.random() * summaryTemplates.length)]
+        setSummary(fallbackSummary)
+        setEditedSummary(fallbackSummary)
+      } else {
+        setSummary(response.content)
+        setEditedSummary(response.content)
+      }
+    } catch (error) {
+      console.error('Error regenerating summary:', error)
+      // Use fallback
+      const newSummary = summaryTemplates[Math.floor(Math.random() * summaryTemplates.length)]
+      setSummary(newSummary)
+      setEditedSummary(newSummary)
+    }
   }
 
   const handleEditSummary = () => {
@@ -230,7 +316,7 @@ export default function ReflectionPage() {
   }
 
   const handleSendMessage = async () => {
-    if (!currentMessage.trim()) return
+    if (!currentMessage.trim() || !entry) return
 
     const userMessage: ChatMessage = {
       id: Date.now().toString(),
@@ -242,9 +328,62 @@ export default function ReflectionPage() {
     setChatMessages(prev => [...prev, userMessage])
     setCurrentMessage('')
     setIsTyping(true)
+    setIsGeneratingResponse(true)
 
-    // Simulate AI response delay
-    setTimeout(() => {
+    try {
+      // Build conversation history
+      const conversationHistory: AIMessage[] = [
+        {
+          role: 'system',
+          content: `사용자가 다음과 같은 일기를 작성했습니다:
+
+제목: ${entry.title}
+무드: ${entry.mood}
+내용: ${DiaryAPI.contentToText(entry.content)}
+
+이 일기에 대해 대화를 나누고 있습니다. 따뜻하고 공감적인 상담사로서 사용자를 지지하고 도와주세요.`
+        }
+      ]
+
+      // Add previous messages (except system message)
+      chatMessages.forEach(msg => {
+        conversationHistory.push({
+          role: msg.type === 'user' ? 'user' : 'assistant',
+          content: msg.content
+        })
+      })
+
+      // Add current user message
+      conversationHistory.push({
+        role: 'user',
+        content: currentMessage
+      })
+
+      const response = await AIService.generateResponse(conversationHistory)
+      
+      if (response.error) {
+        console.error('AI response error:', response.error)
+        // Use fallback
+        const randomResponse = aiReflectionResponses[Math.floor(Math.random() * aiReflectionResponses.length)]
+        const aiMessage: ChatMessage = {
+          id: (Date.now() + 1).toString(),
+          type: 'ai',
+          content: randomResponse,
+          timestamp: new Date()
+        }
+        setChatMessages(prev => [...prev, aiMessage])
+      } else {
+        const aiMessage: ChatMessage = {
+          id: (Date.now() + 1).toString(),
+          type: 'ai',
+          content: response.content,
+          timestamp: new Date()
+        }
+        setChatMessages(prev => [...prev, aiMessage])
+      }
+    } catch (error) {
+      console.error('Error sending message:', error)
+      // Use fallback
       const randomResponse = aiReflectionResponses[Math.floor(Math.random() * aiReflectionResponses.length)]
       const aiMessage: ChatMessage = {
         id: (Date.now() + 1).toString(),
@@ -253,8 +392,10 @@ export default function ReflectionPage() {
         timestamp: new Date()
       }
       setChatMessages(prev => [...prev, aiMessage])
+    } finally {
       setIsTyping(false)
-    }, 1000 + Math.random() * 2000)
+      setIsGeneratingResponse(false)
+    }
   }
 
   const handleClose = async () => {
@@ -488,11 +629,15 @@ export default function ReflectionPage() {
                 />
                 <button
                   onClick={handleSendMessage}
-                  disabled={!currentMessage.trim() || isTyping}
+                  disabled={!currentMessage.trim() || isTyping || isGeneratingResponse}
                   className="w-12 h-12 bg-purple-500 hover:bg-purple-600 disabled:opacity-50 disabled:cursor-not-allowed
                            rounded-xl flex items-center justify-center text-white transition-colors"
                 >
-                  <Send size={18} />
+                  {isGeneratingResponse ? (
+                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                  ) : (
+                    <Send size={18} />
+                  )}
                 </button>
               </div>
             </div>
