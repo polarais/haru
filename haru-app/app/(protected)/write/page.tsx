@@ -177,7 +177,7 @@ export default function WriteEntryPage() {
       // If we don't have an entry ID yet, create the entry first
       if (!entryId) {
         // Convert content to JSONB format (without photo for now)
-        const contentBlocks = DiaryAPI.textAndPhotoToContent(finalContent, null)
+        const contentBlocks = DiaryAPI.textAndPhotoToContent(finalContent)
         
         // Convert chat messages to JSONB format
         const aiChats: AiChatMessage[] = chatMessages.map(msg => ({
@@ -218,7 +218,7 @@ export default function WriteEntryPage() {
           // Don't fail the entire save, just log the error
           setSaveError(`Photo upload failed: ${uploadResult.error}`)
         } else {
-          photoUrl = uploadResult.data
+          photoUrl = uploadResult.data || null
           setSelectedPhoto(photoUrl)
           setPhotoFile(null) // Clear the file after successful upload
           console.log('Photo uploaded successfully:', photoUrl)
@@ -226,7 +226,7 @@ export default function WriteEntryPage() {
       }
 
       // Convert content to JSONB format with photo URL
-      const contentBlocks = DiaryAPI.textAndPhotoToContent(finalContent, photoUrl)
+      const contentBlocks = DiaryAPI.textAndPhotoToContent(finalContent, photoUrl || undefined)
       
       // Convert chat messages to JSONB format
       const aiChats: AiChatMessage[] = chatMessages.map(msg => ({

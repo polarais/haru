@@ -2,16 +2,15 @@
 
 import React from 'react'
 
-interface DiaryEntry {
+interface DiaryEntryDisplay {
   id: string
   date: number
   mood: string
   title: string
   content: string
   preview: string
-  hasPhoto?: boolean
+  hasPhoto: boolean
   photoUrl?: string
-  photoFile?: File
   aiReflection?: {
     summary: string
     chatHistory: Array<{
@@ -25,8 +24,8 @@ interface DiaryEntry {
 }
 
 interface EntryTimelineProps {
-  entries: DiaryEntry[]
-  onEntryClick?: (entry: DiaryEntry) => void
+  entries: DiaryEntryDisplay[]
+  onEntryClick?: (entry: DiaryEntryDisplay) => void
 }
 
 export function EntryTimeline({ entries, onEntryClick }: EntryTimelineProps) {

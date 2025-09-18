@@ -254,6 +254,11 @@ export default function ReflectionPage() {
       }))
 
       const updateData = {
+        date: entry.date,
+        mood: entry.mood,
+        title: entry.title,
+        content: entry.content,
+        write_mode: entry.write_mode,
         summary,
         ai_chats: aiChats
       }
@@ -433,9 +438,11 @@ export default function ReflectionPage() {
       }
     } else {
       // Existing entry, update reflection data and go back to edit
-      await handleAutoSave()
-      const entryDate = new Date(entry.date).getDate()
-      router.push(`/write?id=${entry.id}&date=${entryDate}`)
+      if (entry) {
+        await handleAutoSave()
+        const entryDate = new Date(entry.date).getDate()
+        router.push(`/write?id=${entry.id}&date=${entryDate}`)
+      }
     }
   }
 

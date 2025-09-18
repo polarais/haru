@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { MoodCalendar } from '@/components/mood-calendar'
 import { EntryTimeline } from '@/components/entry-timeline'
-import { EntryViewPanel } from '@/components/entry-view-panel'
+import { EntryViewPanel } from '@/components/entry/EntryViewPanel'
 import { FloatingAddButton } from '@/components/floating-add-button'
 import { DiaryAPI } from '@/lib/diary-api'
 import { DiaryEntry, DiaryEntryDisplay } from '@/lib/types'
@@ -104,7 +104,7 @@ export default function DashboardPage() {
     }
   }
 
-  const handleEntryClick = (entry: DiaryEntry) => {
+  const handleEntryClick = (entry: DiaryEntryDisplay) => {
     // Get all entries sorted by date and ID
     const sortedEntries = [...entries].sort((a, b) => {
       if (a.date !== b.date) {

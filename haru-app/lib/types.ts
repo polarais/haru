@@ -99,3 +99,33 @@ export interface SaveEntryResponse {
   id: string
   updated_at: string
 }
+
+// Component props interfaces
+export interface CalendarDayProps {
+  date: number
+  entries: DiaryEntryDisplay[]
+  isSelected: boolean
+  onDateClick: (date: number) => void
+  onEntryClick: (entry: DiaryEntryDisplay) => void
+}
+
+export interface MoodCalendarGridProps {
+  currentMonth: number // 1-12
+  currentYear: number
+  entries: DiaryEntryDisplay[]
+  selectedDate?: number
+  onDateClick: (date: number) => void
+  onEntryClick: (entry: DiaryEntryDisplay) => void
+}
+
+export interface EntryViewPanelProps {
+  entry: DiaryEntryDisplay | null
+  isOpen: boolean
+  onClose: () => void
+  onExpand: () => void
+  currentEntryIndex: number
+  totalEntries: number
+  onPreviousEntry: () => void
+  onNextEntry: () => void
+  onDelete: (entry: DiaryEntryDisplay) => void
+}
