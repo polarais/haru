@@ -3,8 +3,9 @@ module.exports = {
   testEnvironment: 'jest-environment-jsdom',
   preset: 'ts-jest',
   moduleNameMapper: {
-    '^@/(.*)$': '<rootDir>/$1',
+    '^@/(.*)$': '<rootDir>/haru-app/$1',
   },
+  rootDir: '.',
   testMatch: [
     '**/__tests__/**/*.(test|spec).(js|jsx|ts|tsx)',
     '**/*.(test|spec).(js|jsx|ts|tsx)'
@@ -16,10 +17,10 @@ module.exports = {
     '<rootDir>/test-setup/',     // Exclude Playwright setup
   ],
   collectCoverageFrom: [
-    'lib/**/*.{js,jsx,ts,tsx}',
-    'components/**/*.{js,jsx,ts,tsx}',
-    'app/**/*.{js,jsx,ts,tsx}',
-    'hooks/**/*.{js,jsx,ts,tsx}',
+    'haru-app/lib/**/*.{js,jsx,ts,tsx}',
+    'haru-app/components/**/*.{js,jsx,ts,tsx}',
+    'haru-app/app/**/*.{js,jsx,ts,tsx}',
+    'haru-app/hooks/**/*.{js,jsx,ts,tsx}',
     '!**/*.d.ts',
     '!**/node_modules/**',
     '!**/.next/**',

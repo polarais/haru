@@ -5,6 +5,8 @@ import { ArrowLeft, RefreshCw, Edit2, Send, X } from 'lucide-react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { GradientBackground } from '@/components/ui/gradient-background'
 import { LoadingSpinner } from '@/components/ui/loading-spinner'
+import { StickyHeader } from '@/components/ui/sticky-header'
+import { ReflectionHeader } from '@/components/ui/reflection-header'
 import { DiaryAPI } from '@/lib/diary-api'
 import { DiaryEntry, AiChatMessage } from '@/lib/types'
 import { AIService, AIProvider, SummaryRequest, AIMessage } from '@/lib/ai-service'
@@ -474,37 +476,17 @@ export default function ReflectionPage() {
         </div>
       )}
       {/* Header */}
-      <header className="bg-white/90 backdrop-blur-sm border-b border-gray-200 sticky top-0 z-20">
-        <div className="max-w-7xl mx-auto px-6 py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <button
-                onClick={handleClose}
-                className="w-10 h-10 rounded-full bg-gray-100 hover:bg-gray-200 flex items-center justify-center transition-colors"
-              >
-                <ArrowLeft size={20} className="text-gray-600" />
-              </button>
-              <div>
-                <h1 className="text-gray-800">AI Reflection</h1>
-                <div className="flex items-center gap-3 text-sm text-gray-500">
-                  <span>{formatDate(entry.date)} • {formatDay(entry.date)}</span>
-                  <span>•</span>
-                  <div className="flex items-center gap-1">
-                    <span className="text-lg">{entry.mood}</span>
-                    <span>{entry.title}</span>
-                  </div>
-                  {isSaving && (
-                    <>
-                      <span>•</span>
-                      <span className="text-blue-600">Saving...</span>
-                    </>
-                  )}
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </header>
+      <StickyHeader variant="reflection">
+        <ReflectionHeader 
+          entry={{
+            date: entry.date,
+            mood: entry.mood,
+            title: entry.title || '제목 없음'
+          }}
+          onBack={handleClose}
+          isSaving={isSaving}
+        />
+      </StickyHeader>
 
       {/* Main Content - Split View */}
       <main className="max-w-7xl mx-auto p-6">

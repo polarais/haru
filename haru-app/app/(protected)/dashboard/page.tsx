@@ -9,6 +9,8 @@ import { FloatingAddButton } from '@/components/floating-add-button'
 import { GradientBackground } from '@/components/ui/gradient-background'
 import { LoadingSpinner } from '@/components/ui/loading-spinner'
 import { ConfirmModal } from '@/components/ui/confirm-modal'
+import { StickyHeader } from '@/components/ui/sticky-header'
+import { DashboardHeader } from '@/components/ui/dashboard-header'
 import { DiaryAPI } from '@/lib/diary-api'
 import { DiaryEntry, DiaryEntryDisplay } from '@/lib/types'
 import { useLayout } from '../layout'
@@ -336,37 +338,12 @@ export default function DashboardPage() {
         ${isEntryPanelOpen ? 'lg:mr-[28rem]' : ''}
       `}>
         {/* Header */}
-        <header className="bg-white/80 backdrop-blur-sm border-b border-pink-100 sticky top-0 z-10">
-          <div className="px-4 lg:px-6 py-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <h1 className="text-gray-800 font-medium">
-                  {currentView === 'calendar' ? 'Calendar' : 'Time Table'}
-                </h1>
-                <p className="text-sm text-gray-500 mt-1">
-                  {currentView === 'calendar' 
-                    ? 'Track your daily moods and memories' 
-                    : 'Review all your journal entries'
-                  }
-                </p>
-              </div>
-              {/* Today Button - Only show in calendar view */}
-              {currentView === 'calendar' && (
-                <div className="flex flex-col items-end">
-                  <button 
-                    onClick={handleGoToToday}
-                    className="px-4 py-2 rounded-lg bg-pink-100 hover:bg-pink-200 transition-colors"
-                  >
-                    <span className="text-pink-700">Today</span>
-                  </button>
-                  <p className="text-xs text-gray-500 mt-1">
-                    Today is {new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })}
-                  </p>
-                </div>
-              )}
-            </div>
-          </div>
-        </header>
+        <StickyHeader>
+          <DashboardHeader 
+            currentView={currentView}
+            onGoToToday={handleGoToToday}
+          />
+        </StickyHeader>
 
         {/* Content Area */}
         <div className="flex-1 p-4 lg:p-6 overflow-hidden relative">

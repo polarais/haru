@@ -6,6 +6,8 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import { GradientBackground } from '@/components/ui/gradient-background'
 import { LoadingSpinner } from '@/components/ui/loading-spinner'
 import { ConfirmModal } from '@/components/ui/confirm-modal'
+import { StickyHeader } from '@/components/ui/sticky-header'
+import { WriteHeader } from '@/components/ui/write-header'
 import { DiaryAPI } from '@/lib/diary-api'
 import { DiaryContentBlock, AiChatMessage } from '@/lib/types'
 
@@ -458,96 +460,23 @@ export default function WriteEntryPage() {
   return (
     <GradientBackground variant="secondary" className="h-screen flex flex-col overflow-hidden relative">
       {/* Header */}
-      <header className="bg-white/80 backdrop-blur-sm border-b border-pink-100 sticky top-0 z-10">
-        <div className="px-4 lg:px-6 py-4">
-          <div className="flex lg:grid lg:grid-cols-3 items-center gap-4">
-            {/* Left Section - Back Button & Title */}
-            <div className="flex items-center gap-3 flex-1 lg:flex-none">
-              <button
-                onClick={handleBackButton}
-                className="w-10 h-10 rounded-full bg-gray-100 hover:bg-gray-200 flex items-center justify-center transition-colors"
-              >
-                <ArrowLeft size={20} className="text-gray-600" />
-              </button>
-              <div>
-                <h1 className="text-gray-800">{editingEntryId ? 'Edit Entry' : 'New Entry'}</h1>
-                <p className="text-sm text-gray-500 hidden sm:block">{formatDate(selectedDate)}</p>
-              </div>
-              {/* Save status indicator - Notion style (subtle) */}
-              <div className="flex items-center gap-2">
-                {isSaving && (
-                  <div className="w-1.5 h-1.5 bg-blue-400 rounded-full animate-pulse" title="Saving..." />
-                )}
-                {!hasUnsavedChanges && !isSaving && currentEntryId && (
-                  <div className="w-1.5 h-1.5 bg-green-400 rounded-full opacity-50" title="Saved" />
-                )}
-                {saveError && (
-                  <div className="flex items-center gap-1 text-xs text-red-500" title={saveError}>
-                    <div className="w-1.5 h-1.5 bg-red-400 rounded-full" />
-                    <span className="hidden sm:inline">Save failed</span>
-                  </div>
-                )}
-              </div>
-            </div>
-            
-            {/* Center Section - Mode Toggle */}
-            <div className="hidden lg:flex justify-center">
-              <div className="bg-gray-100 rounded-lg p-1 flex">
-                <button
-                  onClick={() => handleModeSwitch('journal')}
-                  className={`
-                    px-6 py-2 rounded-md flex items-center gap-2 text-sm transition-all
-                    ${writeMode === 'journal' 
-                      ? 'bg-white text-gray-800 shadow-sm' 
-                      : 'text-gray-600 hover:text-gray-800'
-                    }
-                  `}
-                >
-                  <Edit3 size={16} />
-                  Journal
-                </button>
-                <button
-                  onClick={() => handleModeSwitch('chat')}
-                  className={`
-                    px-6 py-2 rounded-md flex items-center gap-2 text-sm transition-all
-                    ${writeMode === 'chat' 
-                      ? 'bg-white text-gray-800 shadow-sm' 
-                      : 'text-gray-600 hover:text-gray-800'
-                    }
-                  `}
-                >
-                  <MessageCircle size={16} />
-                  AI Chat
-                </button>
-              </div>
-            </div>
-            
-            {/* Right Section - Reflect Button */}
-            <div className="hidden lg:flex justify-end gap-4">
-              {writeMode === 'journal' && (
-                <GradientBackground 
-                  variant="accent" 
-                  className="px-6 py-2 rounded-lg hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
-                >
-                  <button
-                    onClick={handleReflect}
-                    disabled={!selectedMood || !content.trim()}
-                    className="text-white w-full"
-                  >
-                    {isSaving ? 'Saving...' : 'Reflect with AI'}
-                  </button>
-                </GradientBackground>
-              )}
-            </div>
-          </div>
-
-          {/* Mobile Mode Toggle */}
-          <div className="lg:hidden mt-4">
+      <StickyHeader className="pb-0">
+        <WriteHeader
+          title={editingEntryId ? 'Edit Entry' : 'New Entry'}
+          subtitle={formatDate(selectedDate)}
+          onBack={handleBackButton}
+          saveStatus={{
+            isSaving,
+            hasUnsavedChanges,
+            currentEntryId,
+            saveError
+          }}
+          centerActions={
             <div className="bg-gray-100 rounded-lg p-1 flex">
               <button
                 onClick={() => handleModeSwitch('journal')}
                 className={`
-                  flex-1 py-2 rounded-md flex items-center justify-center gap-2 text-sm transition-all
+                  px-6 py-2 rounded-md flex items-center gap-2 text-sm transition-all
                   ${writeMode === 'journal' 
                     ? 'bg-white text-gray-800 shadow-sm' 
                     : 'text-gray-600 hover:text-gray-800'
@@ -560,7 +489,7 @@ export default function WriteEntryPage() {
               <button
                 onClick={() => handleModeSwitch('chat')}
                 className={`
-                  flex-1 py-2 rounded-md flex items-center justify-center gap-2 text-sm transition-all
+                  px-6 py-2 rounded-md flex items-center gap-2 text-sm transition-all
                   ${writeMode === 'chat' 
                     ? 'bg-white text-gray-800 shadow-sm' 
                     : 'text-gray-600 hover:text-gray-800'
@@ -571,9 +500,57 @@ export default function WriteEntryPage() {
                 AI Chat
               </button>
             </div>
-          </div>
+          }
+          rightActions={
+            writeMode === 'journal' && (
+              <GradientBackground 
+                variant="accent" 
+                className="px-6 py-2 rounded-lg hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
+              >
+                <button
+                  onClick={handleReflect}
+                  disabled={!selectedMood || !content.trim()}
+                  className="text-white w-full"
+                >
+                  {isSaving ? 'Saving...' : 'Reflect with AI'}
+                </button>
+              </GradientBackground>
+            )
+          }
+        />
+      </StickyHeader>
+      
+      {/* Mobile Mode Toggle - Outside header */}
+      <div className="lg:hidden px-4 lg:px-6 pb-4 bg-white/80 backdrop-blur-sm border-b border-pink-100">
+        <div className="bg-gray-100 rounded-lg p-1 flex">
+          <button
+            onClick={() => handleModeSwitch('journal')}
+            className={`
+              flex-1 py-2 rounded-md flex items-center justify-center gap-2 text-sm transition-all
+              ${writeMode === 'journal' 
+                ? 'bg-white text-gray-800 shadow-sm' 
+                : 'text-gray-600 hover:text-gray-800'
+              }
+            `}
+          >
+            <Edit3 size={16} />
+            Journal
+          </button>
+          <button
+            onClick={() => handleModeSwitch('chat')}
+            className={`
+              flex-1 py-2 rounded-md flex items-center justify-center gap-2 text-sm transition-all
+              ${writeMode === 'chat' 
+                ? 'bg-white text-gray-800 shadow-sm' 
+                : 'text-gray-600 hover:text-gray-800'
+              }
+            `}
+          >
+            <MessageCircle size={16} />
+            AI Chat
+          </button>
         </div>
-      </header>
+      </div>
 
       {/* Main Content */}
       <main className="flex-1 p-4 lg:p-6 overflow-hidden">

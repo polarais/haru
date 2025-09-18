@@ -2,14 +2,15 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import { Eye, EyeOff } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { supabase } from '@/lib/supabase'
-import { ConfirmModal } from '@/components/ui/confirm-modal'
 
 export default function RegisterPage() {
+  const router = useRouter()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
@@ -17,7 +18,6 @@ export default function RegisterPage() {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
-  const [successModal, setSuccessModal] = useState(false)
 
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -48,7 +48,8 @@ export default function RegisterPage() {
       if (error) {
         setError(error.message)
       } else {
-        setSuccessModal(true)
+        // Redirect to email verification page
+        router.push(`/auth/verify-email?email=${encodeURIComponent(email)}`)
       }
     } catch (err) {
       console.error('Registration error:', err)
@@ -177,17 +178,6 @@ export default function RegisterPage() {
         </div>
       </div>
 
-      {/* Success Modal */}
-      <ConfirmModal
-        isOpen={successModal}
-        onClose={() => setSuccessModal(false)}
-        onConfirm={() => setSuccessModal(false)}
-        title="Registration Successful!"
-        message="회원가입 성공! 이메일 확인 후 로그인해주세요."
-        confirmText="OK"
-        cancelText=""
-        type="info"
-      />
     </div>
   )
 }
