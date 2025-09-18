@@ -69,3 +69,25 @@ The project uses `@` alias for `src/` directory (configured in vite.config.ts)
 - Radix UI components for accessible UI primitives
 - Tailwind CSS with class-variance-authority
 - lucide-react for icons
+
+## Testing Requirements
+
+**CRITICAL**: This project uses Test-Driven Development (TDD) with comprehensive test coverage.
+
+### TDD Test Execution
+- **ALWAYS run TDD tests after any code modification**: `npm test`
+- All 135+ tests must pass before considering any task complete
+- Tests are located in `__tests__/` directory (root level, not haru-app/)
+- Never commit or deploy changes that break existing tests
+
+### Test Categories
+- **Unit Tests**: Component testing (CalendarDay, MoodCalendarGrid, EntryViewPanel)
+- **Integration Tests**: Calendar-entry interactions
+- **Utility Tests**: Date/calendar utility functions
+- **Repository Tests**: Data layer testing (Supabase integration)
+
+### Development Workflow
+1. Make code changes
+2. Run `npm test` to verify all tests pass
+3. Only proceed if all tests are green
+4. Commit changes only after test verification
