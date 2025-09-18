@@ -503,18 +503,15 @@ export default function WriteEntryPage() {
           }
           rightActions={
             writeMode === 'journal' && (
-              <GradientBackground 
-                variant="accent" 
-                className="px-6 py-2 rounded-lg hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
+              <button
+                onClick={handleReflect}
+                disabled={!selectedMood || !content.trim()}
+                className="px-6 py-2 bg-gradient-to-r from-purple-500 to-indigo-500 text-white rounded-lg 
+                         hover:from-purple-600 hover:to-indigo-600 disabled:opacity-50 disabled:cursor-not-allowed
+                         transition-all duration-200"
               >
-                <button
-                  onClick={handleReflect}
-                  disabled={!selectedMood || !content.trim()}
-                  className="text-white w-full"
-                >
-                  {isSaving ? 'Saving...' : 'Reflect with AI'}
-                </button>
-              </GradientBackground>
+                {isSaving ? 'Saving...' : 'Reflect with AI'}
+              </button>
             )
           }
         />

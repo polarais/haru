@@ -61,17 +61,47 @@ export function CalendarDay({
       {entries.length > 0 && (
         <div className="flex flex-wrap items-center justify-center gap-0.5 mt-1 max-w-full">
           {entries.length === 1 ? (
-            <span className="text-2xl lg:text-3xl leading-none">{entries[0].mood}</span>
+            <span 
+              data-testid={`mood-indicator-${entries[0].mood}`}
+              className="text-2xl lg:text-3xl leading-none"
+            >
+              {entries[0].mood}
+            </span>
           ) : entries.length === 2 ? (
             <>
-              <span className="text-xl lg:text-xl leading-none">{entries[0].mood}</span>
-              <span className="text-xl lg:text-xl leading-none">{entries[1].mood}</span>
+              <span 
+                data-testid={`mood-indicator-${entries[0].mood}`}
+                className="text-xl lg:text-xl leading-none"
+              >
+                {entries[0].mood}
+              </span>
+              <span 
+                data-testid={`mood-indicator-${entries[1].mood}`}
+                className="text-xl lg:text-xl leading-none"
+              >
+                {entries[1].mood}
+              </span>
             </>
           ) : (
             <>
-              <span className="text-base lg:text-lg leading-none">{entries[0].mood}</span>
-              <span className="text-base lg:text-lg leading-none">{entries[1].mood}</span>
-              <span className="text-base lg:text-lg leading-none">{entries[2].mood}</span>
+              <span 
+                data-testid={`mood-indicator-${entries[0].mood}`}
+                className="text-base lg:text-lg leading-none"
+              >
+                {entries[0].mood}
+              </span>
+              <span 
+                data-testid={`mood-indicator-${entries[1].mood}`}
+                className="text-base lg:text-lg leading-none"
+              >
+                {entries[1].mood}
+              </span>
+              <span 
+                data-testid={`mood-indicator-${entries[2].mood}`}
+                className="text-base lg:text-lg leading-none"
+              >
+                {entries[2].mood}
+              </span>
             </>
           )}
         </div>

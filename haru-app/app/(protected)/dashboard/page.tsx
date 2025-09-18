@@ -18,6 +18,7 @@ import { useLayout } from '../layout'
 export default function DashboardPage() {
   const { currentView } = useLayout()
   const router = useRouter()
+
   const [entries, setEntries] = useState<DiaryEntryDisplay[]>([])
   const [selectedDate, setSelectedDate] = useState<number>()
   const [currentMonth, setCurrentMonth] = useState(() => new Date().getMonth() + 1)
