@@ -9,6 +9,7 @@ import { WriteEntryPage } from './components/WriteEntryPage';
 import { EntryViewPanel } from './components/EntryViewPanel';
 import { FullScreenEntryView } from './components/FullScreenEntryView';
 import { AIReflectionPage } from './components/AIReflectionPage';
+import { ConfirmModal } from './components/ConfirmModal';
 import { LoginPage } from './components/auth/LoginPage';
 import { RegisterPage } from './components/auth/RegisterPage';
 import { ResetPasswordPage } from './components/auth/ResetPasswordPage';
@@ -46,6 +47,22 @@ export default function App() {
   const [authLoading, setAuthLoading] = useState(false);
   const [authError, setAuthError] = useState<string | null>(null);
   const [isResetEmailSent, setIsResetEmailSent] = useState(false);
+  
+  // Modal state
+  const [confirmModal, setConfirmModal] = useState<{
+    isOpen: boolean;
+    title: string;
+    message: string;
+    confirmText?: string;
+    cancelText?: string;
+    type?: 'warning' | 'info' | 'danger';
+    onConfirm: () => void;
+  }>({
+    isOpen: false,
+    title: '',
+    message: '',
+    onConfirm: () => {}
+  });
   
   // Existing state
   const [selectedDate, setSelectedDate] = useState<number | undefined>(undefined);
@@ -346,17 +363,21 @@ export default function App() {
     
     // Check if today already has 3 entries
     if (todayEntries.length >= 3) {
-      // Show alert and suggest writing for tomorrow
+      // Show custom modal and suggest writing for tomorrow
       const tomorrow = today + 1;
-      const confirmed = window.confirm(
-        `You've already written 3 entries for today (September ${today}). Would you like to write an entry for tomorrow (September ${tomorrow}) instead?`
-      );
-      
-      if (confirmed) {
-        setWriteDate(tomorrow);
-        setAppMode('write');
-        setSelectedDate(tomorrow);
-      }
+      setConfirmModal({
+        isOpen: true,
+        title: 'Daily Limit Reached',
+        message: `You've already written 3 entries for today (September ${today}). Would you like to write an entry for tomorrow (September ${tomorrow}) instead?`,
+        confirmText: 'Write for Tomorrow',
+        cancelText: 'Cancel',
+        type: 'info',
+        onConfirm: () => {
+          setWriteDate(tomorrow);
+          setAppMode('write');
+          setSelectedDate(tomorrow);
+        }
+      });
       return;
     }
     
@@ -485,21 +506,25 @@ export default function App() {
   };
 
   const handleDeleteEntry = (entryToDelete: DiaryEntry) => {
-    const confirmed = window.confirm(
-      `Are you sure you want to delete "${entryToDelete.title}"? This action cannot be undone.`
-    );
-    
-    if (!confirmed) return;
-
-    setEntries(prev => prev.filter(entry => entry.id !== entryToDelete.id));
-    
-    // If we're viewing this entry, close the panel
-    if (viewingEntry && viewingEntry.id === entryToDelete.id) {
-      setIsEntryPanelOpen(false);
-      setViewingEntry(null);
-      setSelectedDate(undefined);
-      setCurrentEntryIndex(0);
-    }
+    setConfirmModal({
+      isOpen: true,
+      title: 'Delete Entry',
+      message: `Are you sure you want to delete "${entryToDelete.title}"? This action cannot be undone.`,
+      confirmText: 'Delete',
+      cancelText: 'Keep',
+      type: 'danger',
+      onConfirm: () => {
+        setEntries(prev => prev.filter(entry => entry.id !== entryToDelete.id));
+        
+        // If we're viewing this entry, close the panel
+        if (viewingEntry && viewingEntry.id === entryToDelete.id) {
+          setIsEntryPanelOpen(false);
+          setViewingEntry(null);
+          setSelectedDate(undefined);
+          setCurrentEntryIndex(0);
+        }
+      }
+    });
   };
 
   const handleCancelWrite = () => {
@@ -982,6 +1007,18 @@ export default function App() {
         
         {/* Floating Add Button */}
         <FloatingAddButton onClick={handleAddEntry} />
+        
+        {/* Confirm Modal */}
+        <ConfirmModal
+          isOpen={confirmModal.isOpen}
+          onClose={() => setConfirmModal(prev => ({ ...prev, isOpen: false }))}
+          onConfirm={confirmModal.onConfirm}
+          title={confirmModal.title}
+          message={confirmModal.message}
+          confirmText={confirmModal.confirmText}
+          cancelText={confirmModal.cancelText}
+          type={confirmModal.type}
+        />
       </div>
     </AnimatePresence>
   );
