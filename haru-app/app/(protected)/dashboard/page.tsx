@@ -7,6 +7,7 @@ import { EntryTimeline } from '@/components/entry-timeline'
 import { EntryViewPanel } from '@/components/entry/EntryViewPanel'
 import { FloatingAddButton } from '@/components/floating-add-button'
 import { GradientBackground } from '@/components/ui/gradient-background'
+import { LoadingSpinner } from '@/components/ui/loading-spinner'
 import { DiaryAPI } from '@/lib/diary-api'
 import { DiaryEntry, DiaryEntryDisplay } from '@/lib/types'
 import { useLayout } from '../layout'
@@ -260,12 +261,7 @@ export default function DashboardPage() {
   if (loading) {
     return (
       <GradientBackground className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <GradientBackground variant="brand" className="w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-4">
-            <span className="text-white text-2xl">💕</span>
-          </GradientBackground>
-          <p className="text-gray-600">Loading your entries...</p>
-        </div>
+        <LoadingSpinner text="Loading your entries..." />
       </GradientBackground>
     )
   }

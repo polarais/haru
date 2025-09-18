@@ -82,37 +82,29 @@ export class DiaryAPI {
         if (error) throw error
         result = data
       } else {
-        // Check if entry for this date already exists
-        const { data: existing } = await supabase
+        // Check how many entries exist for this date (max 3 per day)
+        const { data: existingEntries, error: countError } = await supabase
           .from('diaries')
           .select('id')
           .eq('profile_id', user.id)
           .eq('date', entry.date)
           .eq('is_deleted', false)
-          .maybeSingle()
 
-        if (existing) {
-          // Update existing entry
-          const { data, error } = await supabase
-            .from('diaries')
-            .update(entryData)
-            .eq('id', existing.id)
-            .select('id, updated_at')
-            .single()
+        if (countError) throw countError
 
-          if (error) throw error
-          result = data
-        } else {
-          // Create new entry
-          const { data, error } = await supabase
-            .from('diaries')
-            .insert(entryData)
-            .select('id, updated_at')
-            .single()
-
-          if (error) throw error
-          result = data
+        if (existingEntries && existingEntries.length >= 3) {
+          throw new Error('Maximum 3 entries per day allowed')
         }
+
+        // Create new entry (always create, never update in this flow)
+        const { data, error } = await supabase
+          .from('diaries')
+          .insert(entryData)
+          .select('id, updated_at')
+          .single()
+
+        if (error) throw error
+        result = data
       }
 
       return { data: result }

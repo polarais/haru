@@ -4,6 +4,7 @@ import React, { useState, useRef, useEffect } from 'react'
 import { ArrowLeft, RefreshCw, Edit2, Send, X } from 'lucide-react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { GradientBackground } from '@/components/ui/gradient-background'
+import { LoadingSpinner } from '@/components/ui/loading-spinner'
 import { DiaryAPI } from '@/lib/diary-api'
 import { DiaryEntry, AiChatMessage } from '@/lib/types'
 import { AIService, AIProvider, SummaryRequest, AIMessage } from '@/lib/ai-service'
@@ -38,7 +39,6 @@ export default function ReflectionPage() {
   const entryData = searchParams.get('data')
   
   const [entry, setEntry] = useState<DiaryEntry | null>(null)
-  const [loading, setLoading] = useState(true)
   const [summary, setSummary] = useState('')
   const [isEditingSummary, setIsEditingSummary] = useState(false)
   const [editedSummary, setEditedSummary] = useState('')
@@ -47,6 +47,8 @@ export default function ReflectionPage() {
   const [isTyping, setIsTyping] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
   const [isGeneratingResponse, setIsGeneratingResponse] = useState(false)
+  const [isLoadingSummary, setIsLoadingSummary] = useState(false)
+  const [isLoadingInitialChat, setIsLoadingInitialChat] = useState(false)
   
   const chatEndRef = useRef<HTMLDivElement>(null)
 
@@ -97,7 +99,6 @@ export default function ReflectionPage() {
           // Generate AI summary and initial message
           await generateInitialReflection(tempEntry, parsedEntry.content)
           
-          setLoading(false)
           return
         } catch (error) {
           console.error('Error parsing entry data:', error)
@@ -142,8 +143,6 @@ export default function ReflectionPage() {
       } catch (error) {
         console.error('Error loading entry:', error)
         router.push('/dashboard')
-      } finally {
-        setLoading(false)
       }
     }
 
@@ -151,6 +150,10 @@ export default function ReflectionPage() {
   }, [entryId, entryData, router])
 
   const generateInitialReflection = async (diaryEntry: DiaryEntry, textContent: string) => {
+    // Start loading states
+    setIsLoadingSummary(true)
+    setIsLoadingInitialChat(true)
+
     try {
       // Generate AI summary
       const summaryRequest: SummaryRequest = {
@@ -170,6 +173,7 @@ export default function ReflectionPage() {
         setSummary(summaryResponse.content)
         setEditedSummary(summaryResponse.content)
       }
+      setIsLoadingSummary(false)
 
       // Generate initial AI conversation
       const initialPrompt = `사용자가 다음과 같은 일기를 작성했습니다:
@@ -205,12 +209,14 @@ export default function ReflectionPage() {
         }
         setChatMessages([initialMessage])
       }
+      setIsLoadingInitialChat(false)
     } catch (error) {
       console.error('Error generating initial reflection:', error)
       // Use fallback
       const newSummary = summaryTemplates[Math.floor(Math.random() * summaryTemplates.length)]
       setSummary(newSummary)
       setEditedSummary(newSummary)
+      setIsLoadingSummary(false)
       
       const initialMessage: ChatMessage = {
         id: '1',
@@ -219,6 +225,7 @@ export default function ReflectionPage() {
         timestamp: new Date()
       }
       setChatMessages([initialMessage])
+      setIsLoadingInitialChat(false)
     }
   }
 
@@ -228,14 +235,14 @@ export default function ReflectionPage() {
 
   // Auto-save when data changes
   useEffect(() => {
-    if (!entry || !summary || chatMessages.length === 0 || loading) return
+    if (!entry || !summary || chatMessages.length === 0) return
     
     const timeoutId = setTimeout(() => {
       handleAutoSave()
     }, 2000)
 
     return () => clearTimeout(timeoutId)
-  }, [summary, chatMessages, entry, loading])
+  }, [summary, chatMessages, entry])
 
   const handleAutoSave = async () => {
     if (!entry || isSaving) return
@@ -447,19 +454,6 @@ export default function ReflectionPage() {
     }
   }
 
-  if (loading) {
-    return (
-      <GradientBackground variant="secondary" className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <GradientBackground variant="ai" className="w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-4">
-            <span className="text-white text-2xl">🤖</span>
-          </GradientBackground>
-          <p className="text-gray-600">Loading reflection...</p>
-        </div>
-      </GradientBackground>
-    )
-  }
-
   if (!entry) {
     return null
   }
@@ -581,16 +575,30 @@ export default function ReflectionPage() {
                   className="w-full h-20 p-3 border border-purple-200 rounded-lg text-sm text-purple-700 bg-white/80 resize-none focus:outline-none focus:ring-2 focus:ring-purple-300"
                 />
               ) : (
-                <p className="text-sm text-purple-700 leading-relaxed">
-                  {summary}
-                </p>
+                <div className="text-sm text-purple-700 leading-relaxed">
+                  {isLoadingSummary ? (
+                    <div className="flex items-center gap-2">
+                      <LoadingSpinner variant="spinner" />
+                      <span>Reading your journal entry...</span>
+                    </div>
+                  ) : (
+                    summary
+                  )}
+                </div>
               )}
             </div>
 
             {/* Chat Messages */}
             <div className="flex-1 p-6 overflow-y-auto">
               <div className="space-y-4">
-                {chatMessages.map((message) => (
+                {isLoadingInitialChat && chatMessages.length === 0 ? (
+                  <div className="flex justify-start">
+                    <div className="bg-gray-100 px-4 py-3 rounded-2xl rounded-bl-md">
+                      <LoadingSpinner variant="dots" />
+                    </div>
+                  </div>
+                ) : (
+                  chatMessages.map((message) => (
                   <div
                     key={message.id}
                     className={`flex ${message.type === 'user' ? 'justify-end' : 'justify-start'}`}
@@ -607,16 +615,13 @@ export default function ReflectionPage() {
                       <p className="text-sm leading-relaxed">{message.content}</p>
                     </div>
                   </div>
-                ))}
+                  ))
+                )}
                 
                 {isTyping && (
                   <div className="flex justify-start">
                     <div className="bg-gray-100 px-4 py-3 rounded-2xl rounded-bl-md">
-                      <div className="flex gap-1">
-                        <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"></div>
-                        <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce delay-100"></div>
-                        <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce delay-200"></div>
-                      </div>
+                      <LoadingSpinner variant="dots" />
                     </div>
                   </div>
                 )}
