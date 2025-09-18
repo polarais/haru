@@ -4,6 +4,8 @@ import { useState, useRef, useEffect } from 'react'
 import { ArrowLeft, MessageCircle, Edit3, Send, Camera, Plus, X } from 'lucide-react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { GradientBackground } from '@/components/ui/gradient-background'
+import { LoadingSpinner } from '@/components/ui/loading-spinner'
+import { ConfirmModal } from '@/components/ui/confirm-modal'
 import { DiaryAPI } from '@/lib/diary-api'
 import { DiaryContentBlock, AiChatMessage } from '@/lib/types'
 
@@ -58,6 +60,12 @@ export default function WriteEntryPage() {
   const [isSaving, setIsSaving] = useState(false)
   const [saveError, setSaveError] = useState<string | null>(null)
   const [isUploadingPhoto, setIsUploadingPhoto] = useState(false)
+  const [alertModal, setAlertModal] = useState<{
+    isOpen: boolean
+    title: string
+    message: string
+    type: 'info' | 'warning' | 'danger'
+  }>({ isOpen: false, title: '', message: '', type: 'info' })
 
   const textareaRef = useRef<HTMLTextAreaElement>(null)
   const chatEndRef = useRef<HTMLDivElement>(null)
@@ -265,8 +273,16 @@ export default function WriteEntryPage() {
     }
   }
 
+  const showAlert = (title: string, message: string, type: 'info' | 'warning' | 'danger' = 'info') => {
+    setAlertModal({ isOpen: true, title, message, type })
+  }
+
+  const handleCloseAlert = () => {
+    setAlertModal({ isOpen: false, title: '', message: '', type: 'info' })
+  }
+
   const handleBackButton = async () => {
-    // Auto-save before going back
+    // Auto-save before going back (isSaving will show loading automatically)
     if (selectedMood && ((writeMode === 'journal' && content.trim()) || writeMode === 'chat')) {
       await handleAutoSave()
     }
@@ -412,12 +428,12 @@ export default function WriteEntryPage() {
     const file = e.target.files?.[0]
     if (file) {
       if (!file.type.startsWith('image/')) {
-        alert('Please select an image file.')
+        showAlert('Invalid File', 'Please select an image file.', 'danger')
         return
       }
 
       if (file.size > 10 * 1024 * 1024) {
-        alert('Image size should be less than 10MB.')
+        showAlert('File Too Large', 'Image size should be less than 10MB.', 'danger')
         return
       }
 
@@ -440,7 +456,7 @@ export default function WriteEntryPage() {
   }
 
   return (
-    <GradientBackground variant="secondary" className="h-screen flex flex-col overflow-hidden">
+    <GradientBackground variant="secondary" className="h-screen flex flex-col overflow-hidden relative">
       {/* Header */}
       <header className="bg-white/80 backdrop-blur-sm border-b border-pink-100 sticky top-0 z-10">
         <div className="px-4 lg:px-6 py-4">
@@ -779,6 +795,18 @@ export default function WriteEntryPage() {
           </div>
         </div>
       </main>
+
+      {/* Alert Modal */}
+      <ConfirmModal
+        isOpen={alertModal.isOpen}
+        onClose={handleCloseAlert}
+        onConfirm={handleCloseAlert}
+        title={alertModal.title}
+        message={alertModal.message}
+        confirmText="OK"
+        cancelText=""
+        type={alertModal.type}
+      />
     </GradientBackground>
   )
 }

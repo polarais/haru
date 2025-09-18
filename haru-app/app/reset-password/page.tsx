@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { supabase } from '@/lib/supabase'
+import { ConfirmModal } from '@/components/ui/confirm-modal'
 
 export default function ResetPasswordPage() {
   const [password, setPassword] = useState('')
@@ -16,6 +17,7 @@ export default function ResetPasswordPage() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [isTokenValid, setIsTokenValid] = useState(false)
+  const [successModal, setSuccessModal] = useState(false)
   const router = useRouter()
 
   useEffect(() => {
@@ -61,8 +63,7 @@ export default function ResetPasswordPage() {
       if (error) {
         setError(error.message)
       } else {
-        alert('비밀번호가 성공적으로 변경되었습니다!')
-        router.push('/login')
+        setSuccessModal(true)
       }
     } catch (err) {
       console.error('Password update error:', err)
@@ -70,6 +71,11 @@ export default function ResetPasswordPage() {
     } finally {
       setLoading(false)
     }
+  }
+
+  const handleSuccessConfirm = () => {
+    setSuccessModal(false)
+    router.push('/login')
   }
 
   const passwordsMatch = password === confirmPassword
@@ -183,6 +189,18 @@ export default function ResetPasswordPage() {
           </form>
         </div>
       </div>
+
+      {/* Success Modal */}
+      <ConfirmModal
+        isOpen={successModal}
+        onClose={handleSuccessConfirm}
+        onConfirm={handleSuccessConfirm}
+        title="Password Updated!"
+        message="비밀번호가 성공적으로 변경되었습니다!"
+        confirmText="Go to Login"
+        cancelText=""
+        type="info"
+      />
     </div>
   )
 }

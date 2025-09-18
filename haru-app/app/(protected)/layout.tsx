@@ -7,6 +7,8 @@ import { Sidebar } from '@/components/sidebar'
 import { useIsMobile } from '@/hooks/use-mobile'
 import { PanelLeftIcon } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { GradientBackground } from '@/components/ui/gradient-background'
+import { LoadingSpinner } from '@/components/ui/loading-spinner'
 
 type ViewMode = 'calendar' | 'timeline'
 
@@ -69,14 +71,9 @@ export default function ProtectedLayout({ children }: { children: React.ReactNod
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-pink-50 via-rose-50 to-orange-50 flex items-center justify-center">
-        <div className="text-center">
-          <div className="w-16 h-16 bg-gradient-to-r from-pink-400 to-rose-400 rounded-2xl flex items-center justify-center mx-auto mb-4">
-            <span className="text-white text-2xl">💕</span>
-          </div>
-          <p className="text-gray-600">Loading...</p>
-        </div>
-      </div>
+      <GradientBackground className="min-h-screen flex items-center justify-center">
+        <LoadingSpinner variant="spinner" />
+      </GradientBackground>
     )
   }
 

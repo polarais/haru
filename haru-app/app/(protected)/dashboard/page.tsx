@@ -8,6 +8,7 @@ import { EntryViewPanel } from '@/components/entry/EntryViewPanel'
 import { FloatingAddButton } from '@/components/floating-add-button'
 import { GradientBackground } from '@/components/ui/gradient-background'
 import { LoadingSpinner } from '@/components/ui/loading-spinner'
+import { ConfirmModal } from '@/components/ui/confirm-modal'
 import { DiaryAPI } from '@/lib/diary-api'
 import { DiaryEntry, DiaryEntryDisplay } from '@/lib/types'
 import { useLayout } from '../layout'
@@ -24,6 +25,17 @@ export default function DashboardPage() {
   const [isEntryPanelOpen, setIsEntryPanelOpen] = useState(false)
   const [loading, setLoading] = useState(true)
   const [loadingError, setLoadingError] = useState<string | null>(null)
+  const [isNavigating, setIsNavigating] = useState(false)
+  const [deleteConfirmModal, setDeleteConfirmModal] = useState<{
+    isOpen: boolean
+    entry: DiaryEntryDisplay | null
+  }>({ isOpen: false, entry: null })
+  const [alertModal, setAlertModal] = useState<{
+    isOpen: boolean
+    title: string
+    message: string
+    type: 'info' | 'warning' | 'danger'
+  }>({ isOpen: false, title: '', message: '', type: 'info' })
 
   // Load real diary entries from Supabase
   useEffect(() => {
@@ -177,17 +189,18 @@ export default function DashboardPage() {
     }
   }
 
-  const handleDeleteEntry = async (entry: DiaryEntryDisplay) => {
-    const confirmed = window.confirm(
-      `Are you sure you want to delete "${entry.title}"? This action cannot be undone.`
-    )
-    
-    if (!confirmed) return
+  const handleDeleteEntry = (entry: DiaryEntryDisplay) => {
+    setDeleteConfirmModal({ isOpen: true, entry })
+  }
+
+  const handleConfirmDelete = async () => {
+    const entry = deleteConfirmModal.entry
+    if (!entry) return
 
     try {
       const result = await DiaryAPI.deleteEntry(entry.id)
       if (result.error) {
-        alert(`Failed to delete entry: ${result.error}`)
+        showAlert('Delete Failed', `Failed to delete entry: ${result.error}`, 'danger')
         return
       }
 
@@ -199,8 +212,20 @@ export default function DashboardPage() {
       }
     } catch (error) {
       console.error('Error deleting entry:', error)
-      alert('Failed to delete entry. Please try again.')
+      showAlert('Delete Failed', 'Failed to delete entry. Please try again.', 'danger')
     }
+  }
+
+  const handleCloseDeleteModal = () => {
+    setDeleteConfirmModal({ isOpen: false, entry: null })
+  }
+
+  const showAlert = (title: string, message: string, type: 'info' | 'warning' | 'danger' = 'info') => {
+    setAlertModal({ isOpen: true, title, message, type })
+  }
+
+  const handleCloseAlert = () => {
+    setAlertModal({ isOpen: false, title: '', message: '', type: 'info' })
   }
 
   const handlePreviousMonth = () => {
@@ -250,7 +275,11 @@ export default function DashboardPage() {
     
     // Check if user has already written 3 entries today
     if (todayEntries.length >= 3) {
-      alert('You have already written 3 entries today. Come back tomorrow to write more!')
+      showAlert(
+        'Daily Limit Reached', 
+        'You have already written 3 entries today. Come back tomorrow to write more!', 
+        'warning'
+      )
       return
     }
     
@@ -261,7 +290,7 @@ export default function DashboardPage() {
   if (loading) {
     return (
       <GradientBackground className="min-h-screen flex items-center justify-center">
-        <LoadingSpinner text="Loading your entries..." />
+        <LoadingSpinner variant="spinner" />
       </GradientBackground>
     )
   }
@@ -287,6 +316,14 @@ export default function DashboardPage() {
 
   return (
     <GradientBackground className="min-h-screen flex relative">
+      {/* Navigation Loading Overlay */}
+      {isNavigating && (
+        <div className="absolute inset-0 bg-black/20 backdrop-blur-sm z-50 flex items-center justify-center">
+          <div className="bg-white rounded-xl p-6 shadow-lg">
+            <LoadingSpinner variant="spinner" text="Opening..." />
+          </div>
+        </div>
+      )}
       {/* Sidebar space placeholder when panel is open */}
       <div className={`
         hidden lg:block h-screen transition-all duration-300 ease-in-out flex-shrink-0
@@ -413,6 +450,30 @@ export default function DashboardPage() {
 
       {/* Floating Add Button */}
       <FloatingAddButton onClick={handleAddNewEntry} />
+
+      {/* Delete Confirmation Modal */}
+      <ConfirmModal
+        isOpen={deleteConfirmModal.isOpen}
+        onClose={handleCloseDeleteModal}
+        onConfirm={handleConfirmDelete}
+        title="Delete Entry"
+        message={`Are you sure you want to delete "${deleteConfirmModal.entry?.title}"? This action cannot be undone.`}
+        confirmText="Delete"
+        cancelText="Cancel"
+        type="danger"
+      />
+
+      {/* Alert Modal */}
+      <ConfirmModal
+        isOpen={alertModal.isOpen}
+        onClose={handleCloseAlert}
+        onConfirm={handleCloseAlert}
+        title={alertModal.title}
+        message={alertModal.message}
+        confirmText="OK"
+        cancelText=""
+        type={alertModal.type}
+      />
     </GradientBackground>
   )
 }

@@ -49,6 +49,7 @@ export default function ReflectionPage() {
   const [isGeneratingResponse, setIsGeneratingResponse] = useState(false)
   const [isLoadingSummary, setIsLoadingSummary] = useState(false)
   const [isLoadingInitialChat, setIsLoadingInitialChat] = useState(false)
+  const [isNavigating, setIsNavigating] = useState(false)
   
   const chatEndRef = useRef<HTMLDivElement>(null)
 
@@ -412,6 +413,8 @@ export default function ReflectionPage() {
   }
 
   const handleClose = async () => {
+    setIsNavigating(true)
+    
     // Save the entry with reflection data before closing
     if (entry && (entry.id === 'temp' || entryData)) {
       // This is a new entry from write page, save it now
@@ -461,7 +464,15 @@ export default function ReflectionPage() {
   const textContent = DiaryAPI.contentToText(entry.content)
 
   return (
-    <GradientBackground variant="secondary" className="min-h-screen">
+    <GradientBackground variant="secondary" className="min-h-screen relative">
+      {/* Navigation Loading Overlay */}
+      {isNavigating && (
+        <div className="absolute inset-0 bg-black/20 backdrop-blur-sm z-50 flex items-center justify-center">
+          <div className="bg-white rounded-xl p-6 shadow-lg">
+            <LoadingSpinner variant="spinner" text="Returning to write page..." />
+          </div>
+        </div>
+      )}
       {/* Header */}
       <header className="bg-white/90 backdrop-blur-sm border-b border-gray-200 sticky top-0 z-20">
         <div className="max-w-7xl mx-auto px-6 py-4">

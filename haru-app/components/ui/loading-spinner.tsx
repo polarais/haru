@@ -20,8 +20,34 @@ export function LoadingSpinner({
   if (variant === 'spinner') {
     return (
       <div className={cn("flex items-center justify-center", className)}>
-        <div className="w-6 h-6 border-2 border-gray-300 border-t-pink-500 rounded-full animate-spin"></div>
-        {text && <span className="ml-2 text-gray-600">{text}</span>}
+        <div className="relative">
+          {/* Background circle */}
+          <div className="w-10 h-10 rounded-full bg-gradient-to-br from-pink-100 to-rose-100" />
+          {/* Spinning border */}
+          <svg className="absolute inset-0 w-10 h-10 animate-spin" viewBox="0 0 40 40">
+            <circle
+              cx="20"
+              cy="20"
+              r="18"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="3"
+              className="text-gray-200"
+            />
+            <circle
+              cx="20"
+              cy="20"
+              r="18"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="3"
+              strokeDasharray="90 90"
+              strokeLinecap="round"
+              className="text-pink-500"
+            />
+          </svg>
+        </div>
+        {text && <span className="ml-3 text-gray-600 font-medium">{text}</span>}
       </div>
     )
   }
