@@ -6,6 +6,7 @@ import { MoodCalendar } from '@/components/mood-calendar'
 import { EntryTimeline } from '@/components/entry-timeline'
 import { EntryViewPanel } from '@/components/entry/EntryViewPanel'
 import { FloatingAddButton } from '@/components/floating-add-button'
+import { GradientBackground } from '@/components/ui/gradient-background'
 import { DiaryAPI } from '@/lib/diary-api'
 import { DiaryEntry, DiaryEntryDisplay } from '@/lib/types'
 import { useLayout } from '../layout'
@@ -258,20 +259,20 @@ export default function DashboardPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-pink-50 via-rose-50 to-orange-50 flex items-center justify-center">
+      <GradientBackground className="min-h-screen flex items-center justify-center">
         <div className="text-center">
-          <div className="w-16 h-16 bg-gradient-to-r from-pink-400 to-rose-400 rounded-2xl flex items-center justify-center mx-auto mb-4">
+          <GradientBackground variant="brand" className="w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-4">
             <span className="text-white text-2xl">💕</span>
-          </div>
+          </GradientBackground>
           <p className="text-gray-600">Loading your entries...</p>
         </div>
-      </div>
+      </GradientBackground>
     )
   }
 
   if (loadingError) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-pink-50 via-rose-50 to-orange-50 flex items-center justify-center">
+      <GradientBackground className="min-h-screen flex items-center justify-center">
         <div className="text-center">
           <div className="w-16 h-16 bg-gradient-to-r from-red-400 to-rose-400 rounded-2xl flex items-center justify-center mx-auto mb-4">
             <span className="text-white text-2xl">⚠️</span>
@@ -284,12 +285,12 @@ export default function DashboardPage() {
             Retry
           </button>
         </div>
-      </div>
+      </GradientBackground>
     )
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-pink-50 via-rose-50 to-orange-50 flex relative">
+    <GradientBackground className="min-h-screen flex relative">
       {/* Sidebar space placeholder when panel is open */}
       <div className={`
         hidden lg:block h-screen transition-all duration-300 ease-in-out flex-shrink-0
@@ -416,6 +417,6 @@ export default function DashboardPage() {
 
       {/* Floating Add Button */}
       <FloatingAddButton onClick={handleAddNewEntry} />
-    </div>
+    </GradientBackground>
   )
 }

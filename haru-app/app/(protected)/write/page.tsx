@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect } from 'react'
 import { ArrowLeft, MessageCircle, Edit3, Send, Camera, Plus, X } from 'lucide-react'
 import { useRouter, useSearchParams } from 'next/navigation'
+import { GradientBackground } from '@/components/ui/gradient-background'
 import { DiaryAPI } from '@/lib/diary-api'
 import { DiaryContentBlock, AiChatMessage } from '@/lib/types'
 
@@ -439,7 +440,7 @@ export default function WriteEntryPage() {
   }
 
   return (
-    <div className="h-screen bg-gradient-to-br from-gray-50 to-pink-50 flex flex-col overflow-hidden">
+    <GradientBackground variant="secondary" className="h-screen flex flex-col overflow-hidden">
       {/* Header */}
       <header className="bg-white/80 backdrop-blur-sm border-b border-pink-100 sticky top-0 z-10">
         <div className="px-4 lg:px-6 py-4">
@@ -508,15 +509,18 @@ export default function WriteEntryPage() {
             {/* Right Section - Reflect Button */}
             <div className="hidden lg:flex justify-end gap-4">
               {writeMode === 'journal' && (
-                <button
-                  onClick={handleReflect}
-                  disabled={!selectedMood || !content.trim()}
-                  className="px-6 py-2 bg-gradient-to-r from-purple-500 to-indigo-500 text-white rounded-lg 
-                           hover:from-purple-600 hover:to-indigo-600 disabled:opacity-50 disabled:cursor-not-allowed
-                           transition-all duration-200"
+                <GradientBackground 
+                  variant="accent" 
+                  className="px-6 py-2 rounded-lg hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
                 >
-                  {isSaving ? 'Saving...' : 'Reflect with AI'}
-                </button>
+                  <button
+                    onClick={handleReflect}
+                    disabled={!selectedMood || !content.trim()}
+                    className="text-white w-full"
+                  >
+                    {isSaving ? 'Saving...' : 'Reflect with AI'}
+                  </button>
+                </GradientBackground>
               )}
             </div>
           </div>
@@ -693,16 +697,19 @@ export default function WriteEntryPage() {
 
                   {/* Mobile Reflect Button */}
                   <div className="lg:hidden mt-6 pt-6 border-t border-gray-100 flex gap-3 flex-shrink-0">
-                    <button
-                      onClick={handleReflect}
-                      disabled={!content.trim() && !selectedPhoto}
-                      className="w-full py-4 bg-gradient-to-r from-purple-500 to-indigo-500 text-white rounded-xl 
-                               hover:from-purple-600 hover:to-indigo-600 disabled:opacity-50 disabled:cursor-not-allowed
-                               transition-all duration-200 text-lg font-medium flex items-center justify-center gap-2"
+                    <GradientBackground 
+                      variant="accent" 
+                      className="rounded-xl hover:opacity-90 disabled:opacity-50 transition-all duration-200"
                     >
-                      <MessageCircle size={20} />
-                      {isSaving ? 'Saving...' : 'Reflect with AI'}
-                    </button>
+                      <button
+                        onClick={handleReflect}
+                        disabled={!content.trim() && !selectedPhoto}
+                        className="w-full py-4 text-white text-lg font-medium flex items-center justify-center gap-2"
+                      >
+                        <MessageCircle size={20} />
+                        {isSaving ? 'Saving...' : 'Reflect with AI'}
+                      </button>
+                    </GradientBackground>
                   </div>
                 </div>
               ) : (
@@ -772,6 +779,6 @@ export default function WriteEntryPage() {
           </div>
         </div>
       </main>
-    </div>
+    </GradientBackground>
   )
 }

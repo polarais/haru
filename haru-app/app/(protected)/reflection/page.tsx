@@ -3,6 +3,7 @@
 import React, { useState, useRef, useEffect } from 'react'
 import { ArrowLeft, RefreshCw, Edit2, Send, X } from 'lucide-react'
 import { useRouter, useSearchParams } from 'next/navigation'
+import { GradientBackground } from '@/components/ui/gradient-background'
 import { DiaryAPI } from '@/lib/diary-api'
 import { DiaryEntry, AiChatMessage } from '@/lib/types'
 import { AIService, AIProvider, SummaryRequest, AIMessage } from '@/lib/ai-service'
@@ -448,14 +449,14 @@ export default function ReflectionPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-gray-50 to-pink-50 flex items-center justify-center">
+      <GradientBackground variant="secondary" className="min-h-screen flex items-center justify-center">
         <div className="text-center">
-          <div className="w-16 h-16 bg-gradient-to-r from-purple-400 to-indigo-400 rounded-2xl flex items-center justify-center mx-auto mb-4">
+          <GradientBackground variant="ai" className="w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-4">
             <span className="text-white text-2xl">🤖</span>
-          </div>
+          </GradientBackground>
           <p className="text-gray-600">Loading reflection...</p>
         </div>
-      </div>
+      </GradientBackground>
     )
   }
 
@@ -466,7 +467,7 @@ export default function ReflectionPage() {
   const textContent = DiaryAPI.contentToText(entry.content)
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-pink-50">
+    <GradientBackground variant="secondary" className="min-h-screen">
       {/* Header */}
       <header className="bg-white/90 backdrop-blur-sm border-b border-gray-200 sticky top-0 z-20">
         <div className="max-w-7xl mx-auto px-6 py-4">
@@ -651,6 +652,6 @@ export default function ReflectionPage() {
           </div>
         </div>
       </main>
-    </div>
+    </GradientBackground>
   )
 }
