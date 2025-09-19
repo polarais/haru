@@ -415,38 +415,57 @@ export default function ReflectionPage() {
   }
 
   const handleClose = () => {
-    // Background save (non-blocking) - only if this is a genuinely new entry
-    if (entry && entry.id === 'temp' && entryData) {
-      // This is a new entry from write page that hasn't been saved yet
-      // Only save if there's actual AI reflection content (chat messages or summary)
-      if (chatMessages.length > 1 || summary) { // More than just initial AI message
-        const aiChats: AiChatMessage[] = chatMessages.map(msg => ({
-          speaker: msg.type === 'user' ? 'user' : 'assistant',
-          message: msg.content,
-          timestamp: msg.timestamp.toISOString()
-        }))
+    // Check if user actually interacted with AI
+    const hasUserMessages = chatMessages.some(msg => msg.type === 'user')
+    
+    if (entry) {
+      if (hasUserMessages) {
+        // User interacted with AI - save with reflection data
+        if (entry.id === 'temp' && entryData) {
+          // New entry with AI interaction
+          const aiChats: AiChatMessage[] = chatMessages.map(msg => ({
+            speaker: msg.type === 'user' ? 'user' : 'assistant',
+            message: msg.content,
+            timestamp: msg.timestamp.toISOString()
+          }))
 
-        const saveData = {
-          date: entry.date,
-          mood: entry.mood,
-          title: entry.title,
-          content: entry.content,
-          summary,
-          ai_chats: aiChats,
-          write_mode: entry.write_mode
+          const saveData = {
+            date: entry.date,
+            mood: entry.mood,
+            title: entry.title,
+            content: entry.content,
+            summary,
+            ai_chats: aiChats,
+            write_mode: entry.write_mode
+          }
+
+          DiaryAPI.saveEntry(saveData).catch(error => {
+            console.error('Background save failed:', error)
+          })
+        } else if (entry.id !== 'temp') {
+          // Existing entry with AI interaction - update with reflection data
+          handleAutoSave().catch(error => {
+            console.error('Background save failed:', error)
+          })
         }
+      } else {
+        // No AI interaction - ensure basic diary content is saved (fallback)
+        if (entry.id === 'temp' && entryData) {
+          // Save basic diary without AI data (as fallback)
+          const saveData = {
+            date: entry.date,
+            mood: entry.mood,
+            title: entry.title,
+            content: entry.content,
+            write_mode: entry.write_mode
+          }
 
-        // Fire and forget
-        DiaryAPI.saveEntry(saveData).catch(error => {
-          console.error('Background save failed:', error)
-        })
+          DiaryAPI.saveEntry(saveData).catch(error => {
+            console.error('Fallback save failed:', error)
+          })
+        }
+        // If entry.id !== 'temp', the diary was already saved from write page
       }
-      // If no AI interaction happened, don't save - let the original save from write page handle it
-    } else if (entry && entry.id !== 'temp') {
-      // Existing entry - update with reflection data
-      handleAutoSave().catch(error => {
-        console.error('Background save failed:', error)
-      })
     }
     
     // Immediate navigation like Notion

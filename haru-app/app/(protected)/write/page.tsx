@@ -428,19 +428,20 @@ export default function WriteEntryPage() {
     }, 1000 + Math.random() * 2000)
   }
 
-  const handleReflect = () => {
+  const handleReflect = async () => {
     if (!selectedMood || !hasValidContent(content) || writeMode !== 'journal') {
       return
     }
 
-    // Background save before reflection (non-blocking)
-    if (selectedMood && hasValidContent(content)) {
-      handleAutoSave().catch(error => {
-        console.error('Background save before reflection failed:', error)
-      })
+    // Save diary content before going to reflection (ensure diary is saved)
+    try {
+      await handleAutoSave()
+    } catch (error) {
+      console.error('Failed to save before reflection:', error)
+      // Continue anyway - data will be passed to reflection page
     }
 
-    // Create current entry object with unsaved data
+    // Create current entry object with saved/unsaved data
     const currentEntryData = {
       id: currentEntryId || 'temp',
       date: selectedDate,
