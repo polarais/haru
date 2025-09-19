@@ -41,6 +41,11 @@ export default function WriteEntryPage() {
   const selectedDate = searchParams.get('date') ? parseInt(searchParams.get('date')!) : new Date().getDate()
   const editingEntryId = searchParams.get('id') // For editing existing entries
 
+  // Helper function to safely check if content is valid string with content
+  const hasValidContent = (text: any): boolean => {
+    return typeof text === 'string' && text.trim().length > 0
+  }
+
   const [writeMode, setWriteMode] = useState<WriteMode>('journal')
   const [selectedMood, setSelectedMood] = useState<string>('')
   const [title, setTitle] = useState<string>('')
@@ -115,7 +120,7 @@ export default function WriteEntryPage() {
         setWriteMode(entry.write_mode)
 
         // Content is already a string in the simplified schema
-        setContent(entry.content)
+        setContent(entry.content || '')
 
         // Photos are handled separately in the new schema
         // For backward compatibility, we'll load photos from the photos array if available
@@ -148,7 +153,7 @@ export default function WriteEntryPage() {
 
   // Auto-save functionality (Notion-style)
   useEffect(() => {
-    if (!selectedMood || (!content.trim() && writeMode === 'journal')) {
+    if (!selectedMood || (!hasValidContent(content) && writeMode === 'journal')) {
       setHasUnsavedChanges(false)
       return
     }
@@ -319,7 +324,7 @@ export default function WriteEntryPage() {
 
   const handleBackButton = () => {
     // Background auto-save (non-blocking)
-    if (selectedMood && ((writeMode === 'journal' && content.trim()) || writeMode === 'chat')) {
+    if (selectedMood && ((writeMode === 'journal' && hasValidContent(content)) || writeMode === 'chat')) {
       // Fire and forget - save in background
       handleAutoSave().catch(error => {
         console.error('Background save failed:', error)
@@ -335,9 +340,9 @@ export default function WriteEntryPage() {
     
     if (writeMode === 'journal' && newMode === 'chat') {
       // Transfer journal content to chat
-      if (content.trim()) {
+      if (hasValidContent(content)) {
         let journalContent = content.trim()
-        if (title.trim()) {
+        if (title && title.trim()) {
           journalContent = `${title.trim()}\n\n${journalContent}`
         }
         
@@ -424,12 +429,12 @@ export default function WriteEntryPage() {
   }
 
   const handleReflect = () => {
-    if (!selectedMood || !content.trim() || writeMode !== 'journal') {
+    if (!selectedMood || !hasValidContent(content) || writeMode !== 'journal') {
       return
     }
 
     // Background save before reflection (non-blocking)
-    if (selectedMood && content.trim()) {
+    if (selectedMood && hasValidContent(content)) {
       handleAutoSave().catch(error => {
         console.error('Background save before reflection failed:', error)
       })
@@ -674,7 +679,7 @@ export default function WriteEntryPage() {
             writeMode === 'journal' && (
               <button
                 onClick={handleReflect}
-                disabled={!selectedMood || !content.trim()}
+                disabled={!selectedMood || !hasValidContent(content)}
                 className="px-6 py-2 bg-gradient-to-r from-purple-500 to-indigo-500 text-white rounded-lg 
                          hover:from-purple-600 hover:to-indigo-600 disabled:opacity-50 disabled:cursor-not-allowed
                          transition-all duration-200"
@@ -894,7 +899,7 @@ export default function WriteEntryPage() {
                     >
                       <button
                         onClick={handleReflect}
-                        disabled={!content.trim() && !selectedPhoto}
+                        disabled={!hasValidContent(content) && !selectedPhoto}
                         className="w-full py-4 text-white text-lg font-medium flex items-center justify-center gap-2"
                       >
                         <MessageCircle size={20} />

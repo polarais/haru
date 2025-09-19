@@ -307,7 +307,7 @@ export class DiaryAPI {
   }
 
   /**
-   * Save photos for an entry with position indexes
+   * Save photos for an entry with position indexes (JSONB content approach)
    */
   static async saveEntryPhotos(entryId: string, photos: Array<{ file?: File, url?: string, caption?: string, positionIndex: number }>): Promise<ApiResponse<EntryPhoto[]>> {
     try {
@@ -315,6 +315,19 @@ export class DiaryAPI {
       if (!user) throw new Error('Not authenticated')
 
       const savedPhotos: EntryPhoto[] = []
+
+      // Get current entry content
+      const { data: entry, error: fetchError } = await supabase
+        .from('diaries')
+        .select('content')
+        .eq('id', entryId)
+        .eq('profile_id', user.id)
+        .single()
+
+      if (fetchError) throw fetchError
+
+      const currentContent = Array.isArray(entry.content) ? entry.content : []
+      const newContent = [...currentContent]
 
       for (const photo of photos) {
         let photoUrl = photo.url
@@ -329,22 +342,45 @@ export class DiaryAPI {
         }
 
         if (photoUrl) {
-          // Save photo record to database
-          const { data, error } = await supabase
-            .from('entry_photos')
-            .insert({
-              entry_id: entryId,
-              storage_path: photoUrl,
-              caption: photo.caption,
-              position_index: photo.positionIndex
-            })
-            .select()
-            .single()
+          // Create image block for content
+          const imageBlock = {
+            type: 'image',
+            url: photoUrl,
+            caption: photo.caption,
+            meta: {
+              width: 0,
+              height: 0,
+              size: 0
+            }
+          }
 
-          if (error) throw error
-          savedPhotos.push(data)
+          // Insert at position or append
+          if (photo.positionIndex >= 0 && photo.positionIndex < newContent.length) {
+            newContent.splice(photo.positionIndex, 0, imageBlock)
+          } else {
+            newContent.push(imageBlock)
+          }
+
+          // Create EntryPhoto-like object for return
+          savedPhotos.push({
+            id: `${Date.now()}-${Math.random()}`,
+            entry_id: entryId,
+            storage_path: photoUrl,
+            caption: photo.caption,
+            position_index: photo.positionIndex,
+            uploaded_at: new Date().toISOString()
+          })
         }
       }
+
+      // Update entry with new content
+      const { error: updateError } = await supabase
+        .from('diaries')
+        .update({ content: newContent })
+        .eq('id', entryId)
+        .eq('profile_id', user.id)
+
+      if (updateError) throw updateError
 
       return { data: savedPhotos }
     } catch (error) {
@@ -354,19 +390,37 @@ export class DiaryAPI {
   }
 
   /**
-   * Get photos for an entry
+   * Get photos for an entry (from JSONB content)
    */
   static async getEntryPhotos(entryId: string): Promise<ApiResponse<EntryPhoto[]>> {
     try {
-      const { data, error } = await supabase
-        .from('entry_photos')
-        .select('*')
-        .eq('entry_id', entryId)
-        .order('position_index', { ascending: true })
+      const { data: entry, error } = await supabase
+        .from('diaries')
+        .select('content')
+        .eq('id', entryId)
+        .single()
 
       if (error) throw error
 
-      return { data: data || [] }
+      const content = Array.isArray(entry.content) ? entry.content : []
+      const photos: EntryPhoto[] = []
+
+      // Extract image blocks from content
+      content.forEach((block: any, index: number) => {
+        if (block.type === 'image' && block.url) {
+          photos.push({
+            id: `photo-${index}`,
+            entry_id: entryId,
+            storage_path: block.url,
+            caption: block.caption,
+            position_index: index,
+            uploaded_at: new Date().toISOString(), // Placeholder
+            meta: block.meta
+          })
+        }
+      })
+
+      return { data: photos }
     } catch (error) {
       console.error('Error fetching entry photos:', error)
       return { error: error instanceof Error ? error.message : 'Failed to fetch photos' }
