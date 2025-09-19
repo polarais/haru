@@ -6,6 +6,7 @@ module.exports = {
     '^@/(.*)$': '<rootDir>/haru-app/$1',
   },
   rootDir: '.',
+  maxWorkers: 2, // 병렬 worker 수 제한
   testMatch: [
     '**/__tests__/**/*.(test|spec).(js|jsx|ts|tsx)',
     '**/*.(test|spec).(js|jsx|ts|tsx)'

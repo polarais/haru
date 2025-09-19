@@ -12,6 +12,21 @@ export interface UserProfile {
   updated_at: string
 }
 
+// Entry photo (separate table)
+export interface EntryPhoto {
+  id: string
+  entry_id: string
+  storage_path: string
+  caption?: string
+  position_index: number // Position in text where photo should be displayed
+  uploaded_at: string
+  meta?: {
+    width: number
+    height: number
+    size: number
+  }
+}
+
 export interface DiaryContentBlock {
   type: 'paragraph' | 'image'
   text?: string // for paragraph type
@@ -36,7 +51,8 @@ export interface DiaryEntry {
   date: string // DATE format (YYYY-MM-DD)
   mood: string // emoji
   title?: string
-  content: DiaryContentBlock[] // JSONB array
+  content: string // Plain text with photo markers like [PHOTO:1]
+  photos?: EntryPhoto[] // Separate photos array
   ai_chats: AiChatMessage[] // JSONB array
   summary?: string // AI generated summary
   write_mode: 'journal' | 'chat'
@@ -51,7 +67,7 @@ export interface DiaryEntryInsert {
   date: string
   mood: string
   title?: string
-  content: DiaryContentBlock[]
+  content: string // Plain text with photo markers
   ai_chats?: AiChatMessage[]
   summary?: string
   write_mode: 'journal' | 'chat'
@@ -61,7 +77,7 @@ export interface DiaryEntryUpdate {
   date?: string
   mood?: string
   title?: string
-  content?: DiaryContentBlock[]
+  content?: string // Plain text with photo markers
   ai_chats?: AiChatMessage[]
   summary?: string
   write_mode?: 'journal' | 'chat'
@@ -73,10 +89,11 @@ export interface DiaryEntryDisplay {
   date: number // day of month for calendar display
   mood: string
   title: string
-  content: string // flattened text content
+  content: string // flattened text content (without photo markers)
   preview: string // first 100 chars
   hasPhoto: boolean
-  photoUrl?: string
+  photos?: EntryPhoto[] // Array of photos with position info
+  photoUrl?: string // First photo URL for backward compatibility
   aiReflection?: {
     summary: string
     chatHistory: Array<{

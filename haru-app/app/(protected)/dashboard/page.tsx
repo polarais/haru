@@ -11,24 +11,30 @@ import { LoadingSpinner } from '@/components/ui/loading-spinner'
 import { ConfirmModal } from '@/components/ui/confirm-modal'
 import { StickyHeader } from '@/components/ui/sticky-header'
 import { DashboardHeader } from '@/components/ui/dashboard-header'
+import { InlineContentRenderer } from '@/components/ui/inline-content-renderer'
 import { DiaryAPI } from '@/lib/diary-api'
 import { DiaryEntry, DiaryEntryDisplay } from '@/lib/types'
 import { useLayout } from '../layout'
+import { useDiary } from '@/lib/diary-context'
 
 export default function DashboardPage() {
   const { currentView } = useLayout()
   const router = useRouter()
+  const { 
+    entries, 
+    loading, 
+    error: loadingError, 
+    loadEntries, 
+    removeEntry,
+    refreshEntries 
+  } = useDiary()
 
-  const [entries, setEntries] = useState<DiaryEntryDisplay[]>([])
   const [selectedDate, setSelectedDate] = useState<number>()
   const [currentMonth, setCurrentMonth] = useState(() => new Date().getMonth() + 1)
   const [currentYear, setCurrentYear] = useState(() => new Date().getFullYear())
   const [viewingEntry, setViewingEntry] = useState<DiaryEntryDisplay | null>(null)
   const [currentEntryIndex, setCurrentEntryIndex] = useState<number>(0)
   const [isEntryPanelOpen, setIsEntryPanelOpen] = useState(false)
-  const [loading, setLoading] = useState(true)
-  const [loadingError, setLoadingError] = useState<string | null>(null)
-  const [isNavigating, setIsNavigating] = useState(false)
   const [deleteConfirmModal, setDeleteConfirmModal] = useState<{
     isOpen: boolean
     entry: DiaryEntryDisplay | null
@@ -44,54 +50,8 @@ export default function DashboardPage() {
     type: 'info' | 'warning' | 'danger'
   }>({ isOpen: false, title: '', message: '', type: 'info' })
 
-  // Load real diary entries from Supabase
+  // Load entries using context (with caching)
   useEffect(() => {
-    const loadEntries = async () => {
-      try {
-        setLoading(true)
-        setLoadingError(null)
-        
-        const result = await DiaryAPI.getEntries()
-        if (result.error) {
-          throw new Error(result.error)
-        }
-
-        // Convert DiaryEntry to DiaryEntryDisplay for UI
-        const displayEntries: DiaryEntryDisplay[] = (result.data || []).map(entry => {
-          const entryDate = new Date(entry.date)
-          const textContent = DiaryAPI.contentToText(entry.content)
-          
-          return {
-            id: entry.id,
-            date: entryDate.getDate(),
-            mood: entry.mood,
-            title: entry.title || 'Untitled Entry',
-            content: textContent,
-            preview: textContent.length > 100 ? textContent.substring(0, 100) + '...' : textContent,
-            hasPhoto: DiaryAPI.contentHasPhotos(entry.content),
-            photoUrl: DiaryAPI.getFirstPhotoUrl(entry.content),
-            aiReflection: entry.ai_chats && entry.ai_chats.length > 0 ? {
-              summary: entry.summary || 'AI conversation available',
-              chatHistory: entry.ai_chats.map((chat, index) => ({
-                id: index.toString(),
-                type: chat.speaker === 'user' ? 'user' : 'ai',
-                content: chat.message,
-                timestamp: new Date(chat.timestamp)
-              })),
-              savedAt: new Date(entry.updated_at)
-            } : undefined
-          }
-        })
-
-        setEntries(displayEntries)
-      } catch (error) {
-        console.error('Error loading entries:', error)
-        setLoadingError(error instanceof Error ? error.message : 'Failed to load entries')
-      } finally {
-        setLoading(false)
-      }
-    }
-
     loadEntries()
   }, [])
 
@@ -211,8 +171,8 @@ export default function DashboardPage() {
         return
       }
 
-      // Remove from local state
-      setEntries(prev => prev.filter(e => e.id !== entry.id))
+      // Remove from context
+      removeEntry(entry.id)
       
       if (viewingEntry && viewingEntry.id === entry.id) {
         handleCloseEntryPanel()
@@ -255,8 +215,8 @@ export default function DashboardPage() {
           'info'
         )
         
-        // Clear local state
-        setEntries([])
+        // Refresh entries from API
+        await refreshEntries()
         
         if (viewingEntry) {
           handleCloseEntryPanel()
@@ -368,14 +328,7 @@ export default function DashboardPage() {
 
   return (
     <GradientBackground className="min-h-screen flex relative">
-      {/* Navigation Loading Overlay */}
-      {isNavigating && (
-        <div className="absolute inset-0 bg-black/20 backdrop-blur-sm z-50 flex items-center justify-center">
-          <div className="bg-white rounded-xl p-6 shadow-lg">
-            <LoadingSpinner variant="spinner" text="Opening..." />
-          </div>
-        </div>
-      )}
+      {/* Navigation Loading Overlay - Removed for instant navigation */}
       {/* Sidebar space placeholder when panel is open */}
       <div className={`
         hidden lg:block h-screen transition-all duration-300 ease-in-out flex-shrink-0
@@ -468,9 +421,9 @@ export default function DashboardPage() {
                     <p className="text-sm text-gray-500">Created today</p>
                   </div>
                 </div>
-                <p className="text-gray-700 leading-relaxed whitespace-pre-wrap">
-                  {viewingEntry.content}
-                </p>
+                <div className="text-gray-700 leading-relaxed">
+                  <InlineContentRenderer content={viewingEntry.content} />
+                </div>
               </div>
             </div>
           </div>

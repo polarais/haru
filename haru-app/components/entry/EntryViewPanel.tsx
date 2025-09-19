@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { X, Maximize2, Calendar, Clock, FileText, Sparkles, ChevronLeft, ChevronRight, Trash2, MoreHorizontal } from 'lucide-react'
 import {
   DropdownMenu,
@@ -8,7 +8,9 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger
 } from '@/components/ui/dropdown-menu'
-import { EntryViewPanelProps } from '@/lib/types'
+import { InlineContentRenderer } from '@/components/ui/inline-content-renderer'
+import { EntryViewPanelProps, EntryPhoto } from '@/lib/types'
+import { DiaryAPI } from '@/lib/diary-api'
 
 export function EntryViewPanel({ 
   entry, 
@@ -22,6 +24,32 @@ export function EntryViewPanel({
   onDelete 
 }: EntryViewPanelProps) {
   const [activeTab, setActiveTab] = useState<'journal' | 'ai'>('journal')
+  const [entryPhotos, setEntryPhotos] = useState<EntryPhoto[]>([])
+  const [photosLoading, setPhotosLoading] = useState(false)
+  
+  // Load photos when entry changes
+  useEffect(() => {
+    if (entry?.id) {
+      loadEntryPhotos(entry.id)
+    }
+  }, [entry?.id])
+
+  const loadEntryPhotos = async (entryId: string) => {
+    setPhotosLoading(true)
+    try {
+      const result = await DiaryAPI.getEntryPhotos(entryId)
+      if (result.data) {
+        setEntryPhotos(result.data)
+      } else {
+        setEntryPhotos([])
+      }
+    } catch (error) {
+      console.error('Error loading entry photos:', error)
+      setEntryPhotos([])
+    } finally {
+      setPhotosLoading(false)
+    }
+  }
   
   if (!entry) return null
 
@@ -175,9 +203,12 @@ export function EntryViewPanel({
           <div className="prose prose-gray max-w-none">
             {/* Journal Content Tab */}
             {(!entry.aiReflection || activeTab === 'journal') && (
-              <p className="text-gray-700 leading-relaxed whitespace-pre-wrap">
-                {entry.content}
-              </p>
+              <div className="text-gray-700 leading-relaxed">
+                <InlineContentRenderer 
+                  content={entry.content} 
+                  photos={entryPhotos}
+                />
+              </div>
             )}
 
             {/* AI Reflection Tab */}

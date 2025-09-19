@@ -51,7 +51,7 @@ export default function ReflectionPage() {
   const [isGeneratingResponse, setIsGeneratingResponse] = useState(false)
   const [isLoadingSummary, setIsLoadingSummary] = useState(false)
   const [isLoadingInitialChat, setIsLoadingInitialChat] = useState(false)
-  const [isNavigating, setIsNavigating] = useState(false)
+  // Removed isNavigating state - no longer needed for instant navigation
   
   const chatEndRef = useRef<HTMLDivElement>(null)
 
@@ -88,7 +88,7 @@ export default function ReflectionPage() {
             date: `2025-09-${parsedEntry.date.toString().padStart(2, '0')}`,
             mood: parsedEntry.mood,
             title: parsedEntry.title,
-            content: DiaryAPI.textAndPhotoToContent(parsedEntry.content, parsedEntry.photoUrl),
+            content: parsedEntry.content, // Keep as string since DiaryEntry.content expects string
             ai_chats: [],
             summary: '',
             write_mode: 'journal',
@@ -139,7 +139,7 @@ export default function ReflectionPage() {
           setChatMessages(existingMessages)
         } else {
           // Generate new AI reflection
-          await generateInitialReflection(foundEntry, DiaryAPI.contentToText(foundEntry.content))
+          await generateInitialReflection(foundEntry, foundEntry.content)
         }
         
         setEditedSummary(summary)
@@ -289,7 +289,7 @@ export default function ReflectionPage() {
     if (!entry) return
     
     try {
-      const textContent = DiaryAPI.contentToText(entry.content)
+      const textContent = entry.content
       const summaryRequest: SummaryRequest = {
         content: textContent,
         mood: entry.mood,
@@ -355,7 +355,7 @@ export default function ReflectionPage() {
 
 제목: ${entry.title}
 무드: ${entry.mood}
-내용: ${DiaryAPI.contentToText(entry.content)}
+내용: ${entry.content}
 
 이 일기에 대해 대화를 나누고 있습니다. 따뜻하고 공감적인 상담사로서 사용자를 지지하고 도와주세요.`
         }
@@ -414,67 +414,50 @@ export default function ReflectionPage() {
     }
   }
 
-  const handleClose = async () => {
-    setIsNavigating(true)
-    
-    // Save the entry with reflection data before closing
+  const handleClose = () => {
+    // Background save (non-blocking)
     if (entry && (entry.id === 'temp' || entryData)) {
-      // This is a new entry from write page, save it now
-      try {
-        const aiChats: AiChatMessage[] = chatMessages.map(msg => ({
-          speaker: msg.type === 'user' ? 'user' : 'assistant',
-          message: msg.content,
-          timestamp: msg.timestamp.toISOString()
-        }))
+      // New entry - save in background
+      const aiChats: AiChatMessage[] = chatMessages.map(msg => ({
+        speaker: msg.type === 'user' ? 'user' : 'assistant',
+        message: msg.content,
+        timestamp: msg.timestamp.toISOString()
+      }))
 
-        const saveData = {
-          date: entry.date,
-          mood: entry.mood,
-          title: entry.title,
-          content: entry.content,
-          summary,
-          ai_chats: aiChats,
-          write_mode: entry.write_mode
-        }
+      const saveData = {
+        date: entry.date,
+        mood: entry.mood,
+        title: entry.title,
+        content: entry.content,
+        summary,
+        ai_chats: aiChats,
+        write_mode: entry.write_mode
+      }
 
-        const result = await DiaryAPI.saveEntry(saveData)
-        if (result.data) {
-          // Go back to write page in edit mode with the saved entry
-          router.push(`/write?id=${result.data.id}&date=${new Date(entry.date).getDate()}`)
-        } else {
-          console.error('Failed to save entry:', result.error)
-          router.push('/dashboard')
-        }
-      } catch (error) {
-        console.error('Error saving entry:', error)
-        router.push('/dashboard')
-      }
-    } else {
-      // Existing entry, update reflection data and go back to edit
-      if (entry) {
-        await handleAutoSave()
-        const entryDate = new Date(entry.date).getDate()
-        router.push(`/write?id=${entry.id}&date=${entryDate}`)
-      }
+      // Fire and forget
+      DiaryAPI.saveEntry(saveData).catch(error => {
+        console.error('Background save failed:', error)
+      })
+    } else if (entry) {
+      // Existing entry - save in background
+      handleAutoSave().catch(error => {
+        console.error('Background save failed:', error)
+      })
     }
+    
+    // Immediate navigation like Notion
+    router.push('/dashboard')
   }
 
   if (!entry) {
     return null
   }
 
-  const textContent = DiaryAPI.contentToText(entry.content)
+  const textContent = entry.content
 
   return (
     <GradientBackground variant="secondary" className="min-h-screen relative">
-      {/* Navigation Loading Overlay */}
-      {isNavigating && (
-        <div className="absolute inset-0 bg-black/20 backdrop-blur-sm z-50 flex items-center justify-center">
-          <div className="bg-white rounded-xl p-6 shadow-lg">
-            <LoadingSpinner variant="spinner" text="Returning to write page..." />
-          </div>
-        </div>
-      )}
+      {/* Navigation Loading Overlay - Removed for instant navigation */}
       {/* Header */}
       <StickyHeader>
         <ReflectionHeader 

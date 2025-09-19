@@ -9,6 +9,7 @@ import { PanelLeftIcon } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { GradientBackground } from '@/components/ui/gradient-background'
 import { LoadingSpinner } from '@/components/ui/loading-spinner'
+import { DiaryProvider } from '@/lib/diary-context'
 
 type ViewMode = 'calendar' | 'timeline'
 
@@ -82,8 +83,9 @@ export default function ProtectedLayout({ children }: { children: React.ReactNod
   }
 
   return (
-    <LayoutContext.Provider value={{ currentView, setCurrentView }}>
-      <div className="flex min-h-screen bg-gray-50">
+    <DiaryProvider>
+      <LayoutContext.Provider value={{ currentView, setCurrentView }}>
+        <div className="flex min-h-screen bg-gray-50">
         {/* Desktop Sidebar - Hide on write/reflection pages */}
         <div className={`
           ${!isMobile && !shouldHideSidebar ? 'block' : 'hidden'}
@@ -154,7 +156,8 @@ export default function ProtectedLayout({ children }: { children: React.ReactNod
         <main className={`flex-1 ${isMobile && !shouldHideSidebar ? 'pt-16' : ''}`}>
           {children}
         </main>
-      </div>
-    </LayoutContext.Provider>
+        </div>
+      </LayoutContext.Provider>
+    </DiaryProvider>
   )
 }

@@ -1,5 +1,5 @@
 import { supabase } from './supabase'
-import { DiaryEntry, DiaryEntryInsert, DiaryEntryUpdate, DiaryContentBlock, AiChatMessage, ApiResponse, SaveEntryResponse } from './types'
+import { DiaryEntry, DiaryEntryInsert, DiaryEntryUpdate, DiaryContentBlock, AiChatMessage, ApiResponse, SaveEntryResponse, EntryPhoto } from './types'
 
 export class DiaryAPI {
   /**
@@ -307,13 +307,127 @@ export class DiaryAPI {
   }
 
   /**
-   * Helper: Convert text content and photo to DiaryContentBlock array
+   * Save photos for an entry with position indexes
+   */
+  static async saveEntryPhotos(entryId: string, photos: Array<{ file?: File, url?: string, caption?: string, positionIndex: number }>): Promise<ApiResponse<EntryPhoto[]>> {
+    try {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) throw new Error('Not authenticated')
+
+      const savedPhotos: EntryPhoto[] = []
+
+      for (const photo of photos) {
+        let photoUrl = photo.url
+        
+        // Upload file if provided
+        if (photo.file) {
+          const uploadResult = await this.uploadImage(photo.file, entryId)
+          if (uploadResult.error) {
+            throw new Error(`Failed to upload photo: ${uploadResult.error}`)
+          }
+          photoUrl = uploadResult.data!
+        }
+
+        if (photoUrl) {
+          // Save photo record to database
+          const { data, error } = await supabase
+            .from('entry_photos')
+            .insert({
+              entry_id: entryId,
+              storage_path: photoUrl,
+              caption: photo.caption,
+              position_index: photo.positionIndex
+            })
+            .select()
+            .single()
+
+          if (error) throw error
+          savedPhotos.push(data)
+        }
+      }
+
+      return { data: savedPhotos }
+    } catch (error) {
+      console.error('Error saving entry photos:', error)
+      return { error: error instanceof Error ? error.message : 'Failed to save photos' }
+    }
+  }
+
+  /**
+   * Get photos for an entry
+   */
+  static async getEntryPhotos(entryId: string): Promise<ApiResponse<EntryPhoto[]>> {
+    try {
+      const { data, error } = await supabase
+        .from('entry_photos')
+        .select('*')
+        .eq('entry_id', entryId)
+        .order('position_index', { ascending: true })
+
+      if (error) throw error
+
+      return { data: data || [] }
+    } catch (error) {
+      console.error('Error fetching entry photos:', error)
+      return { error: error instanceof Error ? error.message : 'Failed to fetch photos' }
+    }
+  }
+
+  /**
+   * Helper: Parse text content with photo markers [PHOTO:1] and replace with actual photos
+   */
+  static parseContentWithPhotos(content: string, photos: EntryPhoto[]): string {
+    let parsedContent = content
+    
+    // Sort photos by position index
+    const sortedPhotos = [...photos].sort((a, b) => a.position_index - b.position_index)
+    
+    // Replace photo markers with actual photo URLs
+    sortedPhotos.forEach((photo, index) => {
+      const marker = `[PHOTO:${index + 1}]`
+      const photoHtml = `<img src="${photo.storage_path}" alt="${photo.caption || 'Photo'}" class="inline-photo" />`
+      parsedContent = parsedContent.replace(marker, photoHtml)
+    })
+    
+    return parsedContent
+  }
+
+  /**
+   * Helper: Insert photo marker at cursor position in text
+   */
+  static insertPhotoMarker(content: string, cursorPosition: number, photoIndex: number): string {
+    const marker = `[PHOTO:${photoIndex}]`
+    return content.slice(0, cursorPosition) + marker + content.slice(cursorPosition)
+  }
+
+  /**
+   * Helper: Extract photo markers from text and return clean text + positions
+   */
+  static extractPhotoMarkers(content: string): { cleanText: string; photoPositions: Array<{ marker: string; position: number }> } {
+    const photoMarkerRegex = /\[PHOTO:(\d+)\]/g
+    const photoPositions: Array<{ marker: string; position: number }> = []
+    let match
+    
+    while ((match = photoMarkerRegex.exec(content)) !== null) {
+      photoPositions.push({
+        marker: match[0],
+        position: match.index
+      })
+    }
+    
+    // Remove markers from text
+    const cleanText = content.replace(photoMarkerRegex, '')
+    
+    return { cleanText, photoPositions }
+  }
+
+  /**
+   * Legacy helpers for backward compatibility
    */
   static textAndPhotoToContent(text: string, photoUrl?: string, photoCaption?: string): DiaryContentBlock[] {
     const blocks: DiaryContentBlock[] = []
 
     if (text.trim()) {
-      // Split text into paragraphs
       const paragraphs = text.split('\n\n').filter(p => p.trim())
       paragraphs.forEach(paragraph => {
         blocks.push({
@@ -334,28 +448,37 @@ export class DiaryAPI {
     return blocks
   }
 
-  /**
-   * Helper: Extract text content from DiaryContentBlock array
-   */
-  static contentToText(content: DiaryContentBlock[]): string {
+  static contentToText(content: DiaryContentBlock[] | string): string {
+    if (typeof content === 'string') {
+      return content
+    }
     return content
       .filter(block => block.type === 'paragraph')
       .map(block => block.text)
       .join('\n\n')
   }
 
-  /**
-   * Helper: Check if content has photos
-   */
-  static contentHasPhotos(content: DiaryContentBlock[]): boolean {
-    return content.some(block => block.type === 'image')
+  static contentHasPhotos(content: DiaryContentBlock[] | EntryPhoto[]): boolean {
+    if (Array.isArray(content) && content.length > 0) {
+      if ('type' in content[0]) {
+        return (content as DiaryContentBlock[]).some(block => block.type === 'image')
+      } else {
+        return (content as EntryPhoto[]).length > 0
+      }
+    }
+    return false
   }
 
-  /**
-   * Helper: Get first photo URL from content
-   */
-  static getFirstPhotoUrl(content: DiaryContentBlock[]): string | undefined {
-    const imageBlock = content.find(block => block.type === 'image')
-    return imageBlock?.url
+  static getFirstPhotoUrl(content: DiaryContentBlock[] | EntryPhoto[]): string | undefined {
+    if (Array.isArray(content) && content.length > 0) {
+      if ('type' in content[0]) {
+        const imageBlock = (content as DiaryContentBlock[]).find(block => block.type === 'image')
+        return imageBlock?.url
+      } else {
+        const firstPhoto = (content as EntryPhoto[])[0]
+        return firstPhoto?.storage_path
+      }
+    }
+    return undefined
   }
 }
