@@ -476,7 +476,7 @@ export default function ReflectionPage() {
         </div>
       )}
       {/* Header */}
-      <StickyHeader variant="reflection">
+      <StickyHeader>
         <ReflectionHeader 
           entry={{
             date: entry.date,

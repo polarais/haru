@@ -33,6 +33,10 @@ export default function DashboardPage() {
     isOpen: boolean
     entry: DiaryEntryDisplay | null
   }>({ isOpen: false, entry: null })
+  const [deleteAllConfirmModal, setDeleteAllConfirmModal] = useState<{
+    isOpen: boolean
+    isPermanent: boolean
+  }>({ isOpen: false, isPermanent: false })
   const [alertModal, setAlertModal] = useState<{
     isOpen: boolean
     title: string
@@ -223,6 +227,51 @@ export default function DashboardPage() {
     setDeleteConfirmModal({ isOpen: false, entry: null })
   }
 
+  const handleDeleteAllEntries = (isPermanent: boolean = false) => {
+    setDeleteAllConfirmModal({ isOpen: true, isPermanent })
+  }
+
+  const handleConfirmDeleteAll = async () => {
+    const { isPermanent } = deleteAllConfirmModal
+
+    try {
+      const result = isPermanent 
+        ? await DiaryAPI.permanentlyDeleteAllEntries()
+        : await DiaryAPI.deleteAllEntries()
+      
+      if (result.error) {
+        showAlert('Delete Failed', `Failed to delete all entries: ${result.error}`, 'danger')
+        return
+      }
+
+      const deletedCount = result.data?.deletedCount || 0
+      
+      if (deletedCount === 0) {
+        showAlert('No Entries', 'No entries found to delete.', 'info')
+      } else {
+        showAlert(
+          'Success', 
+          `Successfully ${isPermanent ? 'permanently ' : ''}deleted ${deletedCount} entries.`, 
+          'info'
+        )
+        
+        // Clear local state
+        setEntries([])
+        
+        if (viewingEntry) {
+          handleCloseEntryPanel()
+        }
+      }
+    } catch (error) {
+      console.error('Error deleting all entries:', error)
+      showAlert('Delete Failed', 'Failed to delete all entries. Please try again.', 'danger')
+    }
+  }
+
+  const handleCloseDeleteAllModal = () => {
+    setDeleteAllConfirmModal({ isOpen: false, isPermanent: false })
+  }
+
   const showAlert = (title: string, message: string, type: 'info' | 'warning' | 'danger' = 'info') => {
     setAlertModal({ isOpen: true, title, message, type })
   }
@@ -343,6 +392,8 @@ export default function DashboardPage() {
           <DashboardHeader 
             currentView={currentView}
             onGoToToday={handleGoToToday}
+            onDeleteAllEntries={handleDeleteAllEntries}
+            entriesCount={entries.length}
           />
         </StickyHeader>
 
@@ -437,6 +488,22 @@ export default function DashboardPage() {
         title="Delete Entry"
         message={`Are you sure you want to delete "${deleteConfirmModal.entry?.title}"? This action cannot be undone.`}
         confirmText="Delete"
+        cancelText="Cancel"
+        type="danger"
+      />
+
+      {/* Delete All Confirmation Modal */}
+      <ConfirmModal
+        isOpen={deleteAllConfirmModal.isOpen}
+        onClose={handleCloseDeleteAllModal}
+        onConfirm={handleConfirmDeleteAll}
+        title={deleteAllConfirmModal.isPermanent ? "Permanently Delete All Entries" : "Delete All Entries"}
+        message={
+          deleteAllConfirmModal.isPermanent 
+            ? `Are you sure you want to PERMANENTLY delete all ${entries.length} diary entries? This action CANNOT be undone and all data will be lost forever!`
+            : `Are you sure you want to delete all ${entries.length} diary entries? They will be marked as deleted but can be recovered if needed.`
+        }
+        confirmText={deleteAllConfirmModal.isPermanent ? "Delete Forever" : "Delete All"}
         cancelText="Cancel"
         type="danger"
       />

@@ -23,7 +23,9 @@
     "test:e2e:accessibility": "playwright test --project=accessibility",
     "test:e2e:report": "playwright show-report",
     "test:e2e:headed": "playwright test --headed",
-    "test:all": "npm run test && npm run test:e2e"
+    "test:all": "npm run test && npm run test:e2e",
+    "delete-all-entries": "npx ts-node haru-app/scripts/delete-all-entries.ts",
+    "delete-all-entries:permanent": "npx ts-node haru-app/scripts/delete-all-entries.ts --permanent"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.57.4",
@@ -49,6 +51,7 @@
     "@types/jest": "^29.5.0",
     "jest": "^29.7.0",
     "jest-environment-jsdom": "^29.7.0",
-    "ts-jest": "^29.1.0"
+    "ts-jest": "^29.1.0",
+    "ts-node": "^10.9.0"
   }
 }

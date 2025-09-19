@@ -138,6 +138,83 @@ export class DiaryAPI {
   }
 
   /**
+   * Delete all diary entries for the current user (soft delete)
+   */
+  static async deleteAllEntries(): Promise<ApiResponse<{ deletedCount: number }>> {
+    try {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) throw new Error('Not authenticated')
+
+      // First, get count of entries that will be deleted
+      const { data: existingEntries, error: countError } = await supabase
+        .from('diaries')
+        .select('id')
+        .eq('profile_id', user.id)
+        .eq('is_deleted', false)
+
+      if (countError) throw countError
+
+      const deletedCount = existingEntries?.length || 0
+
+      if (deletedCount === 0) {
+        return { data: { deletedCount: 0 } }
+      }
+
+      // Perform bulk soft delete
+      const { error } = await supabase
+        .from('diaries')
+        .update({ is_deleted: true })
+        .eq('profile_id', user.id)
+        .eq('is_deleted', false)
+
+      if (error) throw error
+
+      return { data: { deletedCount } }
+    } catch (error) {
+      console.error('Error deleting all entries:', error)
+      return { error: error instanceof Error ? error.message : 'Failed to delete all entries' }
+    }
+  }
+
+  /**
+   * Permanently delete all diary entries for the current user (hard delete)
+   * WARNING: This action cannot be undone!
+   */
+  static async permanentlyDeleteAllEntries(): Promise<ApiResponse<{ deletedCount: number }>> {
+    try {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) throw new Error('Not authenticated')
+
+      // First, get count of entries that will be deleted
+      const { data: existingEntries, error: countError } = await supabase
+        .from('diaries')
+        .select('id')
+        .eq('profile_id', user.id)
+
+      if (countError) throw countError
+
+      const deletedCount = existingEntries?.length || 0
+
+      if (deletedCount === 0) {
+        return { data: { deletedCount: 0 } }
+      }
+
+      // Perform bulk hard delete
+      const { error } = await supabase
+        .from('diaries')
+        .delete()
+        .eq('profile_id', user.id)
+
+      if (error) throw error
+
+      return { data: { deletedCount } }
+    } catch (error) {
+      console.error('Error permanently deleting all entries:', error)
+      return { error: error instanceof Error ? error.message : 'Failed to permanently delete all entries' }
+    }
+  }
+
+  /**
    * Upload image to Supabase Storage and return URL
    */
   static async uploadImage(file: File, entryId: string): Promise<ApiResponse<string>> {

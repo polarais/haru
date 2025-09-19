@@ -550,9 +550,9 @@ export default function WriteEntryPage() {
       </div>
 
       {/* Main Content */}
-      <main className="flex-1 p-4 lg:p-6 overflow-hidden">
-        <div className="max-w-4xl mx-auto h-full flex items-center justify-center">
-          <div className="w-full h-full lg:h-auto">
+      <main className="flex-1 overflow-hidden">
+        <div className="h-full max-w-7xl mx-auto px-6 py-6">
+          <div className="w-full h-full">
             <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden h-full flex flex-col">
               {/* Mood Selection - Optional */}
               <div className="p-4 lg:p-6 border-b border-gray-50">
