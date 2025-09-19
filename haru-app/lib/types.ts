@@ -86,7 +86,7 @@ export interface DiaryEntryUpdate {
 // Frontend display types (simplified for UI)
 export interface DiaryEntryDisplay {
   id: string
-  date: number // day of month for calendar display
+  date: string | number // date string (YYYY-MM-DD) or day number for backward compatibility
   mood: string
   title: string
   content: string // flattened text content (without photo markers)

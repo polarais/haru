@@ -29,12 +29,11 @@ export function DiaryProvider({ children }: DiaryProviderProps) {
   const [lastLoaded, setLastLoaded] = useState<Date | null>(null)
 
   const convertToDisplayEntry = useCallback((entry: DiaryEntry): DiaryEntryDisplay => {
-    const entryDate = new Date(entry.date)
     const textContent = typeof entry.content === 'string' ? entry.content : String(entry.content || '') // Safe conversion
     
     return {
       id: entry.id,
-      date: entryDate.getDate(),
+      date: entry.date, // Keep original date string format (YYYY-MM-DD)
       mood: entry.mood,
       title: entry.title || '',
       content: textContent,

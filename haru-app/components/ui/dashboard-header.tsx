@@ -48,7 +48,7 @@ export function DashboardHeader({
           </div>
         )}
         
-        {/* Today Button */}
+        {/* Today Button & Date Display */}
         <div className="flex flex-col items-end justify-center">
           {currentView === 'calendar' ? (
             <>
@@ -68,13 +68,18 @@ export function DashboardHeader({
               </p>
             </>
           ) : (
-            // Invisible spacer to maintain exact same height (button height + margin + text height)
+            // Timeline view - show date without Today button
             <>
               <div className="px-4 py-2 mb-1 invisible">
                 <span>Today</span>
               </div>
-              <p className="text-xs text-gray-500 invisible">
-                Placeholder for consistent height
+              <p className="text-xs text-gray-500">
+                Today is {new Date().toLocaleDateString('en-US', { 
+                  weekday: 'long', 
+                  month: 'long', 
+                  day: 'numeric', 
+                  year: 'numeric' 
+                })}
               </p>
             </>
           )}

@@ -53,19 +53,38 @@ export function EntryViewPanel({
   
   if (!entry) return null
 
-  const formatDate = (date: number, month: number, year: number) => {
-    const monthNames = [
-      'January', 'February', 'March', 'April', 'May', 'June',
-      'July', 'August', 'September', 'October', 'November', 'December'
-    ]
-    return `${monthNames[month - 1]} ${date}, ${year}`
+  const formatDate = (date: string | number, month?: number, year?: number) => {
+    if (typeof date === 'string') {
+      // Parse date string (YYYY-MM-DD)
+      const dateObj = new Date(date)
+      const monthNames = [
+        'January', 'February', 'March', 'April', 'May', 'June',
+        'July', 'August', 'September', 'October', 'November', 'December'
+      ]
+      return `${monthNames[dateObj.getMonth()]} ${dateObj.getDate()}, ${dateObj.getFullYear()}`
+    } else {
+      // Legacy number format
+      const monthNames = [
+        'January', 'February', 'March', 'April', 'May', 'June',
+        'July', 'August', 'September', 'October', 'November', 'December'
+      ]
+      return `${monthNames[(month || new Date().getMonth() + 1) - 1]} ${date}, ${year || new Date().getFullYear()}`
+    }
   }
 
-  const formatDay = (date: number) => {
-    const today = new Date()
-    const currentDate = new Date(today.getFullYear(), today.getMonth(), date)
-    const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
-    return days[currentDate.getDay()]
+  const formatDay = (date: string | number) => {
+    if (typeof date === 'string') {
+      // Parse date string (YYYY-MM-DD)
+      const dateObj = new Date(date)
+      const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
+      return days[dateObj.getDay()]
+    } else {
+      // Legacy number format
+      const today = new Date()
+      const currentDate = new Date(today.getFullYear(), today.getMonth(), date)
+      const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
+      return days[currentDate.getDay()]
+    }
   }
 
   return (
@@ -89,7 +108,7 @@ export function EntryViewPanel({
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-2 px-3 py-1.5 bg-pink-50 rounded-full border border-pink-100">
               <Calendar size={14} className="text-pink-600" />
-              <span className="text-sm text-pink-700">{new Date().toLocaleDateString('en-US', { month: 'short' })}. {entry.date}</span>
+              <span className="text-sm text-pink-700">{typeof entry.date === 'string' ? new Date(entry.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : `${new Date().toLocaleDateString('en-US', { month: 'short' })}. ${entry.date}`}</span>
               <span className="text-pink-500">•</span>
               <span className="text-sm text-pink-700">{formatDay(entry.date)}</span>
               <div className="flex items-center gap-1 ml-2">
@@ -261,7 +280,7 @@ export function EntryViewPanel({
         {/* Footer */}
         <div className="border-t border-gray-100 p-6 flex-shrink-0">
           <div className="flex items-center justify-between text-sm text-gray-500">
-            <span>Created on {formatDate(entry.date, new Date().getMonth() + 1, new Date().getFullYear())}</span>
+            <span>Created on {formatDate(entry.date)}</span>
             <span>{entry.content.length} characters</span>
           </div>
         </div>

@@ -1,27 +1,7 @@
 'use client'
 
 import React from 'react'
-
-interface DiaryEntryDisplay {
-  id: string
-  date: number
-  mood: string
-  title: string
-  content: string
-  preview: string
-  hasPhoto: boolean
-  photoUrl?: string
-  aiReflection?: {
-    summary: string
-    chatHistory: Array<{
-      id: string
-      type: 'user' | 'ai'
-      content: string
-      timestamp: Date
-    }>
-    savedAt: Date
-  }
-}
+import { DiaryEntryDisplay } from '@/lib/types'
 
 interface EntryTimelineProps {
   entries: DiaryEntryDisplay[]
@@ -29,20 +9,37 @@ interface EntryTimelineProps {
 }
 
 export function EntryTimeline({ entries, onEntryClick }: EntryTimelineProps) {
-  const sortedEntries = entries.sort((a, b) => b.date - a.date) // Sort by date, newest first
+  const sortedEntries = entries.sort((a, b) => {
+    // Convert dates to comparable format
+    const dateA = typeof a.date === 'string' ? new Date(a.date).getTime() : a.date
+    const dateB = typeof b.date === 'string' ? new Date(b.date).getTime() : b.date
+    return dateB - dateA // Sort by date, newest first
+  })
 
-  const formatDate = (date: number) => {
-    const today = new Date()
-    const monthNames = [
-      'January', 'February', 'March', 'April', 'May', 'June',
-      'July', 'August', 'September', 'October', 'November', 'December'
-    ]
-    return `${monthNames[today.getMonth()]} ${date}, ${today.getFullYear()}`
+  const formatDate = (date: string | number) => {
+    if (typeof date === 'string') {
+      // Parse date string (YYYY-MM-DD)
+      const dateObj = new Date(date)
+      const monthNames = [
+        'January', 'February', 'March', 'April', 'May', 'June',
+        'July', 'August', 'September', 'October', 'November', 'December'
+      ]
+      return `${monthNames[dateObj.getMonth()]} ${dateObj.getDate()}, ${dateObj.getFullYear()}`
+    } else {
+      // Legacy number format
+      const today = new Date()
+      const monthNames = [
+        'January', 'February', 'March', 'April', 'May', 'June',
+        'July', 'August', 'September', 'October', 'November', 'December'
+      ]
+      return `${monthNames[today.getMonth()]} ${date}, ${today.getFullYear()}`
+    }
   }
 
   return (
-    <div className="h-full overflow-y-auto">
-      <div className="mb-8">
+    <div className="h-full flex flex-col">
+      {/* Fixed Header */}
+      <div className="mb-8 flex-shrink-0">
         <h2 className="text-gray-600 mb-2 font-medium">All Journal Entries</h2>
         <p className="text-sm text-gray-500">
           {entries.length > 0 
@@ -52,7 +49,9 @@ export function EntryTimeline({ entries, onEntryClick }: EntryTimelineProps) {
         </p>
       </div>
       
-      <div className="space-y-6">
+      {/* Scrollable Content */}
+      <div className="flex-1 overflow-y-auto">
+        <div className="space-y-6">
         {sortedEntries.length === 0 ? (
           <div className="text-center py-16">
             <div className="text-6xl mb-4">✨</div>
@@ -110,10 +109,11 @@ export function EntryTimeline({ entries, onEntryClick }: EntryTimelineProps) {
             </div>
           ))
         )}
+        </div>
+        
+        {/* Spacer for floating button */}
+        <div className="h-20"></div>
       </div>
-      
-      {/* Spacer for floating button */}
-      <div className="h-20"></div>
     </div>
   )
 }

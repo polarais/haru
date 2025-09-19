@@ -19,8 +19,22 @@ export function getFirstDayOfWeek(month: number, year: number): number {
 /**
  * 특정 날짜의 일기들을 필터링해서 반환합니다.
  */
-export function getEntriesForDate(entries: DiaryEntryDisplay[], date: number): DiaryEntryDisplay[] {
-  return entries.filter(entry => entry.date === date)
+export function getEntriesForDate(entries: DiaryEntryDisplay[], date: number, currentMonth?: number, currentYear?: number): DiaryEntryDisplay[] {
+  return entries.filter(entry => {
+    if (typeof entry.date === 'string') {
+      const [year, month, day] = entry.date.split('-').map(Number)
+      
+      // If month/year provided, match exactly
+      if (currentMonth && currentYear) {
+        return year === currentYear && month === currentMonth && day === date
+      }
+      
+      // Otherwise just match day (backward compatibility)
+      return day === date
+    }
+    // Fallback for old numeric date format
+    return entry.date === date
+  })
 }
 
 /**

@@ -72,7 +72,10 @@ export default function DashboardPage() {
       // Get all entries sorted by date and ID
       const sortedEntries = [...entries].sort((a, b) => {
         if (a.date !== b.date) {
-          return a.date - b.date
+          // Convert dates to comparable format
+          const dateA = typeof a.date === 'string' ? new Date(a.date).getTime() : a.date
+          const dateB = typeof b.date === 'string' ? new Date(b.date).getTime() : b.date
+          return dateA - dateB
         }
         return a.id.localeCompare(b.id)
       })
@@ -89,7 +92,10 @@ export default function DashboardPage() {
     // Get all entries sorted by date and ID
     const sortedEntries = [...entries].sort((a, b) => {
       if (a.date !== b.date) {
-        return a.date - b.date
+        // Convert dates to comparable format
+        const dateA = typeof a.date === 'string' ? new Date(a.date).getTime() : a.date
+        const dateB = typeof b.date === 'string' ? new Date(b.date).getTime() : b.date
+        return dateA - dateB
       }
       return a.id.localeCompare(b.id)
     })
@@ -98,7 +104,9 @@ export default function DashboardPage() {
     setViewingEntry(entry)
     setCurrentEntryIndex(entryIndex !== -1 ? entryIndex : 0)
     setIsEntryPanelOpen(true)
-    setSelectedDate(entry.date)
+    // Extract day from date for selectedDate
+    const dayNumber = typeof entry.date === 'string' ? parseInt(entry.date.split('-')[2]) : entry.date
+    setSelectedDate(dayNumber)
   }
 
   const handlePreviousEntry = () => {
@@ -106,7 +114,10 @@ export default function DashboardPage() {
     
     const sortedEntries = [...entries].sort((a, b) => {
       if (a.date !== b.date) {
-        return a.date - b.date
+        // Convert dates to comparable format
+        const dateA = typeof a.date === 'string' ? new Date(a.date).getTime() : a.date
+        const dateB = typeof b.date === 'string' ? new Date(b.date).getTime() : b.date
+        return dateA - dateB
       }
       return a.id.localeCompare(b.id)
     })
@@ -118,7 +129,9 @@ export default function DashboardPage() {
     const newEntry = sortedEntries[newIndex]
     
     setViewingEntry(newEntry)
-    setSelectedDate(newEntry.date)
+    // Extract day from date for selectedDate
+    const dayNumber = typeof newEntry.date === 'string' ? parseInt(newEntry.date.split('-')[2]) : newEntry.date
+    setSelectedDate(dayNumber)
     setCurrentEntryIndex(newIndex)
   }
 
@@ -127,7 +140,10 @@ export default function DashboardPage() {
     
     const sortedEntries = [...entries].sort((a, b) => {
       if (a.date !== b.date) {
-        return a.date - b.date
+        // Convert dates to comparable format
+        const dateA = typeof a.date === 'string' ? new Date(a.date).getTime() : a.date
+        const dateB = typeof b.date === 'string' ? new Date(b.date).getTime() : b.date
+        return dateA - dateB
       }
       return a.id.localeCompare(b.id)
     })
@@ -139,7 +155,9 @@ export default function DashboardPage() {
     const newEntry = sortedEntries[newIndex]
     
     setViewingEntry(newEntry)
-    setSelectedDate(newEntry.date)
+    // Extract day from date for selectedDate
+    const dayNumber = typeof newEntry.date === 'string' ? parseInt(newEntry.date.split('-')[2]) : newEntry.date
+    setSelectedDate(dayNumber)
     setCurrentEntryIndex(newIndex)
   }
 
@@ -353,7 +371,7 @@ export default function DashboardPage() {
         {/* Content Area */}
         <div className="flex-1 p-4 lg:p-6 overflow-hidden relative">
           {currentView === 'calendar' ? (
-            <div className="max-w-4xl mx-auto h-full flex items-center justify-center">
+            <div className="max-w-6xl mx-auto h-full flex items-center justify-center">
               <div className="w-full h-full lg:h-auto">
                 <MoodCalendar 
                   onDateClick={handleDateClick}
@@ -369,9 +387,9 @@ export default function DashboardPage() {
               </div>
             </div>
           ) : (
-            <div className="max-w-4xl mx-auto h-full flex items-center justify-center">
+            <div className="max-w-6xl mx-auto h-full flex items-center justify-center">
               <div className="w-full h-full lg:h-auto">
-                <div className="bg-white rounded-xl p-4 lg:p-8 shadow-sm border border-gray-100 h-full lg:h-[calc(100vh-12rem)]">
+                <div className="bg-white rounded-xl p-4 lg:p-8 shadow-sm border border-gray-100 h-full lg:h-[78vh] flex flex-col">
                   <EntryTimeline 
                     entries={entries} 
                     onEntryClick={handleEntryClick}

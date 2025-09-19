@@ -15,18 +15,35 @@ export function ReflectionHeader({
   onBack, 
   isSaving 
 }: ReflectionHeaderProps) {
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString)
-    return date.toLocaleDateString('en-US', { 
-      month: 'long',
-      day: 'numeric', 
-      year: 'numeric' 
-    })
+  const formatDate = (dateString: string | number) => {
+    if (typeof dateString === 'string') {
+      const date = new Date(dateString)
+      return date.toLocaleDateString('en-US', { 
+        month: 'long',
+        day: 'numeric', 
+        year: 'numeric' 
+      })
+    } else {
+      // Legacy number format
+      const today = new Date()
+      return today.toLocaleDateString('en-US', { 
+        month: 'long',
+        day: 'numeric', 
+        year: 'numeric' 
+      })
+    }
   }
 
-  const formatDay = (dateString: string) => {
-    const date = new Date(dateString)
-    return date.toLocaleDateString('en-US', { weekday: 'long' })
+  const formatDay = (dateString: string | number) => {
+    if (typeof dateString === 'string') {
+      const date = new Date(dateString)
+      return date.toLocaleDateString('en-US', { weekday: 'long' })
+    } else {
+      // Legacy number format
+      const today = new Date()
+      const currentDate = new Date(today.getFullYear(), today.getMonth(), dateString)
+      return currentDate.toLocaleDateString('en-US', { weekday: 'long' })
+    }
   }
 
   return (

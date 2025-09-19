@@ -39,6 +39,16 @@ export default function WriteEntryPage() {
   const searchParams = useSearchParams()
   const { addEntry } = useDiary()
   const selectedDate = searchParams.get('date') ? parseInt(searchParams.get('date')!) : new Date().getDate()
+  
+  // Helper function to format date properly
+  const formatDateForDB = (day: number) => {
+    const today = new Date()
+    const year = today.getFullYear()
+    const month = today.getMonth() + 1 // getMonth() returns 0-11
+    const formattedDate = `${year}-${month.toString().padStart(2, '0')}-${day.toString().padStart(2, '0')}`
+    console.log('📅 formatDateForDB:', { day, year, month, formattedDate })
+    return formattedDate
+  }
   const editingEntryId = searchParams.get('id') // For editing existing entries
 
   // Helper function to safely check if content is valid string with content
@@ -208,7 +218,7 @@ export default function WriteEntryPage() {
 
         // Prepare diary entry data
         const entryData = {
-          date: `2025-09-${selectedDate.toString().padStart(2, '0')}`,
+          date: formatDateForDB(selectedDate),
           mood: selectedMood,
           title: finalTitle || '',
           content: finalContent,
@@ -256,7 +266,7 @@ export default function WriteEntryPage() {
 
       // Update entry with final content (including photo if uploaded)
       const finalEntryData = {
-        date: `2025-09-${selectedDate.toString().padStart(2, '0')}`,
+        date: formatDateForDB(selectedDate),
         mood: selectedMood,
         title: finalTitle || '',
         content: finalContent,
@@ -444,7 +454,7 @@ export default function WriteEntryPage() {
     // Create current entry object with saved/unsaved data
     const currentEntryData = {
       id: currentEntryId || 'temp',
-      date: selectedDate,
+      date: formatDateForDB(selectedDate),
       mood: selectedMood,
       title: title || '',
       content: content,

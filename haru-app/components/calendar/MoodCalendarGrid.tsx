@@ -58,7 +58,7 @@ export function MoodCalendarGrid({
       {/* 날짜 셀들 */}
       {Array.from({ length: daysInMonth }).map((_, index) => {
         const date = index + 1
-        const dayEntries = getEntriesForDate(entries, date)
+        const dayEntries = getEntriesForDate(entries, date, currentMonth, currentYear)
         const isSelected = selectedDate === date
         
         return (
