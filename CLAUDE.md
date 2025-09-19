@@ -12,12 +12,21 @@ This is a journaling app called "haru" built with React, TypeScript, and Vite. T
 # Install dependencies
 npm i
 
-# Run development server (port 3000)
+# Run development server (ALWAYS use port 3000)
 npm run dev
+# Note: If port 3000 is in use, stop other processes first
+# NEVER use other ports - development server must run on port 3000
 
 # Build for production
 npm run build
 ```
+
+## Development Server Rules
+
+**CRITICAL**: The development server MUST ALWAYS run on port 3000.
+- Use `lsof -ti:3000 | xargs kill -9` to clear port 3000 if needed
+- Use `PORT=3000 npm run dev` to force port 3000
+- Never accept alternative ports like 3001, 3002, etc.
 
 ## Architecture
 
