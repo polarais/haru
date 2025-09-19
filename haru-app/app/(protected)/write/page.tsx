@@ -127,7 +127,7 @@ export default function WriteEntryPage() {
             timestamp: new Date(chat.timestamp)
           }))
           setChatMessages(chatMessages)
-          setWriteMode('chat')
+          // Don't override writeMode here - use the entry's write_mode instead
         }
 
         // Mark as not having unsaved changes since we just loaded
@@ -201,7 +201,7 @@ export default function WriteEntryPage() {
         const entryData = {
           date: `2025-09-${selectedDate.toString().padStart(2, '0')}`,
           mood: selectedMood,
-          title: finalTitle || `Entry for ${formatDate(selectedDate)}`,
+          title: finalTitle || '',
           content: contentBlocks,
           ai_chats: aiChats,
           write_mode: writeMode
@@ -250,7 +250,7 @@ export default function WriteEntryPage() {
       const finalEntryData = {
         date: `2025-09-${selectedDate.toString().padStart(2, '0')}`,
         mood: selectedMood,
-        title: finalTitle || `Entry for ${formatDate(selectedDate)}`,
+        title: finalTitle || '',
         content: contentBlocks,
         ai_chats: aiChats,
         write_mode: writeMode
