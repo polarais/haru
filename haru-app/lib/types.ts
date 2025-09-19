@@ -120,6 +120,8 @@ export interface SaveEntryResponse {
 // Component props interfaces
 export interface CalendarDayProps {
   date: number
+  currentMonth: number // 1-12
+  currentYear: number
   entries: DiaryEntryDisplay[]
   isSelected: boolean
   onDateClick: (date: number) => void

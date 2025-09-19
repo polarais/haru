@@ -5,13 +5,19 @@ import { cn } from '@/lib/utils'
 
 export function CalendarDay({
   date,
+  currentMonth,
+  currentYear,
   entries,
   isSelected,
   onDateClick,
   onEntryClick
 }: CalendarDayProps) {
-  const today = new Date().getDate()
-  const isToday = date === today
+  const today = new Date()
+  const todayYear = today.getFullYear()
+  const todayMonth = today.getMonth() + 1 // getMonth() returns 0-11, we use 1-12
+  const todayDate = today.getDate()
+  
+  const isToday = currentYear === todayYear && currentMonth === todayMonth && date === todayDate
   
   // 최대 3개까지만 표시
   const displayedEntries = entries.slice(0, 3)

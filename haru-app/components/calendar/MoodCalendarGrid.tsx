@@ -32,7 +32,7 @@ export function MoodCalendarGrid({
       data-testid="calendar-grid"
       role="grid"
       aria-label={ariaLabel}
-      className="grid grid-cols-7 gap-1 lg:gap-2 relative flex-1"
+      className="grid grid-cols-7 gap-2 lg:gap-3 relative flex-1"
     >
       {/* 요일 헤더 */}
       {WEEKDAYS.map(day => (
@@ -65,6 +65,8 @@ export function MoodCalendarGrid({
           <CalendarDay
             key={date}
             date={date}
+            currentMonth={currentMonth}
+            currentYear={currentYear}
             entries={dayEntries}
             isSelected={isSelected}
             onDateClick={onDateClick}
